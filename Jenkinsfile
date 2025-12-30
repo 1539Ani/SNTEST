@@ -65,7 +65,7 @@ pipeline {
 
                     httpRequest(
                         httpMode: 'POST',
-                        url: 'https://webhook.site/0fb194c3-6c22-4a4e-9f59-e97ff87905b7',
+                        url: 'https://webhook.site/49bc75e8-2afe-460c-8382-9cbf9be8ea84',
                         contentType: 'APPLICATION_JSON',
                         requestBody: groovy.json.JsonOutput.toJson(payload)
                     )

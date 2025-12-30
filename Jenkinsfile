@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        PATH = "/opt/homebrew/bin:${env.PATH}"
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -10,7 +14,7 @@ pipeline {
 
         stage('Compile Java Code') {
             steps {
-                sh '/usr/local/bin/mvn clean compile'
+                sh 'mvn clean compile'
             }
         }
 

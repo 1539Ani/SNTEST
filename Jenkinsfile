@@ -14,7 +14,9 @@ pipeline {
 
         stage('Compile Java Code') {
             steps {
-                sh 'mvn clean compile'
+                dir('Test') {
+                    sh 'mvn clean compile'
+                }
             }
         }
 

@@ -88,14 +88,17 @@ pipeline {
                 echo groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(payload))
                 echo "==========================="
 
-                // Send webhook on agent (best practice)
-                // Send webhook
+                // Convert payload to JSON string
+                def payloadJson = groovy.json.JsonOutput.toJson(payload)
+                
+                // Write JSON to file and send using curl
                 sh """
+                  echo '${payloadJson}' > payload.json
                   curl -X POST \
-                    -H "Content-Type: application/json" \
-                    -d '${payload}' \
-                    -H "jenkins-token: now_KWFMnVwcWX4rR0fYr_zrqea008rWye55Oe5R9SjwPvRmUw91tw_I1ZfoRssp_1Dpk-ztEiFEFahpXmycbMuhrw" \
-                    https://webhook.site/49bc75e8-2afe-460c-8382-9cbf9be8ea84
+                       -H "Content-Type: application/json" \
+                       -d @payload.json \
+                       -H "jenkins-token: now_KWFMnVwcWX4rR0fYr_zrqea008rWye55Oe5R9SjwPvRmUw91tw_I1ZfoRssp_1Dpk-ztEiFEFahpXmycbMuhrw" \
+                       https://webhook.site/49bc75e8-2afe-460c-8382-9cbf9be8ea84
                 """
             }
         }

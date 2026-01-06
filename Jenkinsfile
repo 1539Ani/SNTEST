@@ -69,15 +69,13 @@ pipeline {
                         sh 'mvn jacoco:report'
         
                         // Record coverage in Jenkins
-                        recordCoverage(
-                            tools: [
-                                [$class: 'JacocoPublisher', pattern: 'target/site/jacoco/jacoco.xml']
-                            ],
-                            qualityGates: [
-                                [metric: 'LINE', threshold: 80.0, unstable: true],
-                                [metric: 'BRANCH', threshold: 70.0, unstable: true]
-                            ]
-                        )
+                            recordCoverage(
+                                tools: [jacoco(pattern: 'target/site/jacoco/jacoco.xml')],
+                                qualityGates: [
+                                    lineCoverage(minimum: 80, failUnhealthy: true),
+                                    branchCoverage(minimum: 70, failUnhealthy: true)
+                                ]
+                            )
                     }
                 }
                 script {

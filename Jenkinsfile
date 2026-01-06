@@ -64,13 +64,15 @@ pipeline {
         stage('Code Coverage') {
             steps {
                 script {
-                    dir('Test') { // Change working directory
+                    dir('Test') {
                         // Generate coverage report
                         sh 'mvn jacoco:report'
         
                         // Record coverage in Jenkins
                         recordCoverage(
-                            tools: [jacoco(pattern: 'target/site/jacoco/jacoco.xml')],
+                            tools: [
+                                [$class: 'JacocoPublisher', pattern: 'target/site/jacoco/jacoco.xml']
+                            ],
                             qualityGates: [
                                 [metric: 'LINE', threshold: 80.0, unstable: true],
                                 [metric: 'BRANCH', threshold: 70.0, unstable: true]
@@ -86,6 +88,7 @@ pipeline {
                 }
             }
         }
+
 
         /* ================= WARNINGS ================= */
         stage('Static Analysis (Warnings)') {

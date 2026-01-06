@@ -13,7 +13,5 @@ public class App {
         System.out.println("Max: " + calc.max(a, b));
         System.out.println("Divide: " + calc.divide(a, b));
 
-        // Example divide by zero (commented to avoid runtime crash)
-        // System.out.println("Divide by zero: " + calc.divide(a, 0));
     }
 }

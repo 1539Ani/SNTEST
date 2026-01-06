@@ -1,40 +1,137 @@
 pipeline {
     agent any
 
-    // Ensure Maven installed via Homebrew is in PATH
+    options {
+        // Keep only the last 20 builds to save disk space
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+        // Show timestamps in console log for better debugging
+        timestamps()
+    }
+
     environment {
-        PATH = "/opt/homebrew/bin:${env.PATH}"
+        // Tracks the type of failure: BUILD_FAILED, QUALITY_FAILED, PIPELINE_FAILED, or NONE
+        FAILURE_TYPE = ''
+        // Tracks multiple stages that caused UNSTABLE (quality failures)
+        FAILED_STAGES = ''
+        // Stores a short error summary, e.g., compilation or deployment errors
+        ERROR_SUMMARY = ''
+        // Target deployment environment (DEV / PDI / NONPROD / PROD)
+        TARGET_ENV = 'DEV'
     }
 
     stages {
 
+        /* ================= CHECKOUT ================= */
         stage('Checkout') {
             steps {
-                echo "🧾 Checking out code from ${env.GIT_URL}"
+                // Pulls the code from SCM (Git)
                 checkout scm
             }
         }
 
-        stage('Validate Environment') {
-            steps {
-                echo "🔍 Validating tools"
-                sh 'mvn -version'
-            }
-        }
-
-        stage('Compile Java Code') {
+        /* ================= BUILD ================= */
+        stage('Compile') {
             steps {
                 script {
                     try {
-                        dir('Test') {
-                            sh 'mvn clean compile'
-                        }
-                        echo "✅ Compilation successful"
+                        // Compile Java code using Maven
+                        sh 'mvn clean compile'
                     } catch (err) {
-                        echo "❌ Compilation failed: ${err.getMessage()}"
-                        currentBuild.result = 'FAILURE'
-                        // Store error message for webhook
-                        env.COMPILE_ERROR = err.getMessage()
+                        // Mark build as failed if compilation errors occur
+                        env.FAILURE_TYPE = 'BUILD_FAILED'
+                        env.FAILED_STAGES = 'Compile'
+                        env.ERROR_SUMMARY = err.getMessage()
+                        // Stop pipeline execution immediately
+                        error('Build failed during compilation')
+                    }
+                }
+            }
+        }
+
+        /* ================= UNIT TESTS ================= */
+        stage('Unit Tests') {
+            steps {
+                // Run tests; if any test fails, mark UNSTABLE but continue pipeline
+                catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                    sh 'mvn test'
+                }
+                // Publish JUnit XML test reports to Jenkins
+                junit 'target/surefire-reports/*.xml'
+                script {
+                    if (currentBuild.result == 'UNSTABLE') {
+                        // Mark quality failure and append stage to FAILED_STAGES
+                        env.FAILURE_TYPE = 'BUILD_UNSTABLE'
+                        env.FAILED_STAGES = (env.FAILED_STAGES ?: '') + 'Unit Tests,'
+                    }
+                }
+            }
+        }
+
+        /* ================= CODE COVERAGE ================= */
+        stage('Code Coverage') {
+            steps {
+                // Read JaCoCo coverage reports and mark UNSTABLE if thresholds not met
+                recordCoverage(
+                    tools: [[parser: 'JACOCO']],
+                    qualityGates: [
+                        [metric: 'LINE', threshold: 80.0, unstable: true],
+                        [metric: 'BRANCH', threshold: 70.0, unstable: true]
+                    ]
+                )
+                script {
+                    if (currentBuild.result == 'UNSTABLE') {
+                        // Append Code Coverage to FAILED_STAGES for webhook
+                        env.FAILURE_TYPE = 'BUILD_UNSTABLE'
+                        env.FAILED_STAGES = (env.FAILED_STAGES ?: '') + 'Code Coverage,'
+                    }
+                }
+            }
+        }
+
+        /* ================= WARNINGS ================= */
+        stage('Static Analysis (Warnings)') {
+            steps {
+                // Use Warnings-NG plugin to record static analysis issues
+                // If warnings exceed threshold, mark build UNSTABLE
+                recordIssues(
+                    tool: java(),
+                    qualityGates: [
+                        [threshold: 10, type: 'TOTAL', unstable: true]
+                    ]
+                )
+                script {
+                    if (currentBuild.result == 'UNSTABLE') {
+                        env.FAILURE_TYPE = 'BUILD_UNSTABLE'
+                        env.FAILED_STAGES = (env.FAILED_STAGES ?: '') + 'Warnings,'
+                    }
+                }
+            }
+        }
+
+        /* ================= DEPLOYMENT ================= */
+        stage('Deploy') {
+            when {
+                // Only deploy if build did not fail (UNSTABLE is okay)
+                expression { currentBuild.result != 'FAILURE' }
+            }
+            steps {
+                script {
+                    try {
+                        echo "Deploying to ${env.TARGET_ENV}"
+
+                        // For testing, you can simulate a failure on PDI
+                        if (env.TARGET_ENV == 'PDI') {
+                            sh 'exit 1'
+                        } else {
+                            sh 'echo Deployment successful'
+                        }
+
+                    } catch (err) {
+                        // Mark pipeline as failed if deployment fails
+                        env.FAILURE_TYPE = 'PIPELINE_FAILED'
+                        env.FAILED_STAGES = 'Deploy'
+                        env.ERROR_SUMMARY = err.getMessage()
+                        error("Deployment failed in ${env.TARGET_ENV}")
                     }
                 }
             }
@@ -44,61 +141,57 @@ pipeline {
     post {
         always {
             script {
-                echo "📤 Preparing webhook payload"
-
+                // Collect start and end times
                 def startTime = new Date(currentBuild.startTimeInMillis).toString()
+                def endTime = new Date().toString()
+
+                // Collect information about who triggered the build
                 def triggeredBy = currentBuild.getBuildCauses()
                     .collect { it.shortDescription }
-                    .join(", ")
+                    .join(', ')
 
-                def gitBranch = env.GIT_BRANCH ?: 'unknown'
-                def repoUrl = scm.userRemoteConfigs[0].url
-                def repoName = repoUrl.tokenize('/').last().replace('.git', '')
-
-                def changes = []
-                currentBuild.changeSets.each { changeSet ->
-                    changeSet.items.each { entry ->
-                        changes << [
-                            commitId: entry.commitId,
-                            author  : entry.author.fullName,
-                            message : entry.msg,
-                            timestamp: new Date(entry.timestamp).toString(),
-                            files   : entry.affectedFiles.collect { it.path }
-                        ]
+                // Collect list of changed files for webhook
+                def changedFiles = []
+                currentBuild.changeSets.each { cs ->
+                    cs.items.each { item ->
+                        item.affectedFiles.each { f ->
+                            changedFiles << f.path
+                        }
                     }
                 }
 
-                // Build payload
+                // Remove trailing comma from FAILED_STAGES
+                def failedStagesClean = (env.FAILED_STAGES ?: '').trim().replaceAll(/,$/, '')
+
+                // Build webhook payload
                 def payload = [
-                    source      : "jenkins",
-                    sourceType  : "pipeline",
-                    job         : env.JOB_NAME,
-                    build       : env.BUILD_NUMBER,
-                    status      : currentBuild.currentResult,
-                    repository  : repoName,
-                    repoUrl     : repoUrl,
-                    branch      : gitBranch,
-                    triggeredBy : triggeredBy,
-                    buildStart  : startTime,
-                    compileError: env.COMPILE_ERROR ?: '',
-                    changes     : changes
+                    source        : 'jenkins',
+                    job           : env.JOB_NAME,
+                    buildNumber   : env.BUILD_NUMBER,
+                    result        : currentBuild.currentResult,
+                    failureType   : env.FAILURE_TYPE ?: 'NONE',
+                    failedStages  : failedStagesClean,
+                    errorSummary  : env.ERROR_SUMMARY ?: '',
+                    changedFiles  : changedFiles.unique(),
+                    environment   : env.TARGET_ENV ?: '',
+                    triggeredBy   : triggeredBy,
+                    startTime     : startTime,
+                    endTime       : endTime
                 ]
 
+                def payloadJson = groovy.json.JsonOutput.toJson(payload)
+
                 echo "===== WEBHOOK PAYLOAD ====="
-                echo groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(payload))
+                echo groovy.json.JsonOutput.prettyPrint(payloadJson)
                 echo "==========================="
 
-                // Convert payload to JSON string
-                def payloadJson = groovy.json.JsonOutput.toJson(payload)
-                
-                // Write JSON to file and send using curl
+                // Send webhook payload
                 sh """
                   echo '${payloadJson}' > payload.json
                   curl -X POST \
                        -H "Content-Type: application/json" \
                        -d @payload.json \
-                       -H "jenkins-token: now_KWFMnVwcWX4rR0fYr_zrqea008rWye55Oe5R9SjwPvRmUw91tw_I1ZfoRssp_1Dpk-ztEiFEFahpXmycbMuhrw" \
-                       https://webhook.site/49bc75e8-2afe-460c-8382-9cbf9be8ea84
+                       https://webhook.site/e25ea33e-9af6-4d1f-b4fd-41c4dae5490a
                 """
             }
         }

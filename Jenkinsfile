@@ -113,7 +113,7 @@ pipeline {
                         echo "Deploying to ${env.TARGET_ENV}"
 
                         // For testing, you can simulate failure on PDI
-                        if (env.TARGET_ENV == 'PDI') {
+                        if (env.TARGET_ENV == 'DEV') {
                             sh 'exit 1'
                         } else {
                             sh 'echo Deployment successful'

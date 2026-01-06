@@ -63,19 +63,21 @@ pipeline {
         /* ================= CODE COVERAGE ================= */
         stage('Code Coverage') {
             steps {
-                dir('Test') { // Ensure coverage is collected from Test module
-                    // Generate coverage report
-                    sh 'mvn jacoco:report'
-
-                    // Record coverage in Jenkins
-                    recordCoverage(
-                        tools: [jacoco(pattern: '**/target/site/jacoco/jacoco.xml')],
-                        qualityGates: [
-                            [metric: 'LINE', threshold: 80.0, unstable: true],
-                            [metric: 'BRANCH', threshold: 70.0, unstable: true]
-                        ]
+                script {
+                    dir('Test') { // Change working directory
+                        // Generate coverage report
+                        sh 'mvn jacoco:report'
+        
+                        // Record coverage in Jenkins
+                        recordCoverage(
+                            tools: [jacoco(pattern: 'target/site/jacoco/jacoco.xml')],
+                            qualityGates: [
+                                [metric: 'LINE', threshold: 80.0, unstable: true],
+                                [metric: 'BRANCH', threshold: 70.0, unstable: true]
+                            ]
                         )
                     }
+                }
                 script {
                     if (currentBuild.result == 'UNSTABLE') {
                         env.FAILURE_TYPE = 'BUILD_UNSTABLE'

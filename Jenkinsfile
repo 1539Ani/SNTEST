@@ -65,7 +65,7 @@ pipeline {
             steps {
                 dir('Test') { // Ensure coverage is collected from Test module
                     // Generate coverage report
-                    sh 'mvn clean test jacoco:report'
+                    sh 'mvn jacoco:report'
 
                     // Record coverage in Jenkins
                     recordCoverage(

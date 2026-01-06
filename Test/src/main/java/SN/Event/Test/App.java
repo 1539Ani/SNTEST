@@ -1,16 +1,19 @@
 package SN.Event.Test;
 
-/**
- * Hello world!
- *
- */
-public class App 
-{
-    public static void main( String[] args )
-    {
-        System.out.println( "Hello World!" );
-        System.out.println( "SN TEST" );
-        System.out.println( "SN TEST" );
-        System.out.println( "SN TEST" );
+public class App {
+
+    public static void main(String[] args) {
+        Calculator calc = new Calculator();
+
+        int a = 10;
+        int b = 5;
+
+        System.out.println("Add: " + calc.add(a, b));
+        System.out.println("Subtract: " + calc.subtract(a, b));
+        System.out.println("Max: " + calc.max(a, b));
+        System.out.println("Divide: " + calc.divide(a, b));
+
+        // Example divide by zero (commented to avoid runtime crash)
+        // System.out.println("Divide by zero: " + calc.divide(a, 0));
     }
 }

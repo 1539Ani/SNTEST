@@ -1,14 +1,9 @@
 pipeline {
     agent any
 
-    options {
-        // Keep only the last 20 builds to save disk space
-        buildDiscarder(logRotator(numToKeepStr: '20'))
-        // Show timestamps in console log for better debugging
-        timestamps()
-    }
-
     environment {
+        PATH = "/opt/homebrew/bin:${env.PATH}"
+        
         // Tracks the type of failure: BUILD_FAILED, QUALITY_FAILED, PIPELINE_FAILED, or NONE
         FAILURE_TYPE = ''
         // Tracks multiple stages that caused UNSTABLE (quality failures)
@@ -34,8 +29,10 @@ pipeline {
             steps {
                 script {
                     try {
-                        // Compile Java code using Maven
-                        sh 'mvn clean compile'
+                        dir('Test') {
+                            // Compile Java code using Maven
+                            sh 'mvn clean compile'
+                        }
                     } catch (err) {
                         // Mark build as failed if compilation errors occur
                         env.FAILURE_TYPE = 'BUILD_FAILED'

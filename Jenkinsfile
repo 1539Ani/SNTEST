@@ -25,9 +25,10 @@ pipeline {
                             sh 'mvn clean compile'
                         }
                     } catch (err) {
-                        env.ERROR_SUMMARY = "Compilation Failed: ${err.getMessage()}"
+                        env.FAILURE_TYPE = 'BUILD_FAILED'
                         env.FAILED_STAGES = 'Compile Java Code'
-                        error('Build failed during compilation')
+                        env.ERROR_SUMMARY = "Compilation failed: ${err.getMessage()}"
+                        error("Stopping pipeline due to compilation failure")
                     }
                 }
             }
@@ -35,7 +36,6 @@ pipeline {
 
         stage('Unit Tests') {
             steps {
-                // catchError sets the build to UNSTABLE if tests fail
                 catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
                     dir('Test') {
                         sh 'mvn test'
@@ -50,6 +50,7 @@ pipeline {
                 script {
                     dir('Test') {
                         sh 'mvn jacoco:report'
+                        // If quality gates fail, the build automatically becomes UNSTABLE
                         recordCoverage qualityGates: [
                             [integerThreshold: 80, metric: 'LINE', threshold: 80.0], 
                             [integerThreshold: 70, metric: 'BRANCH', threshold: 70.0]
@@ -72,7 +73,7 @@ pipeline {
 
         stage('DEPLOY') {
             when {
-                // Only attempt deploy if previous steps didn't result in FAILURE
+                // Ensure we don't deploy if a previous stage (like Compile) caused a FAILURE
                 expression { currentBuild.result != 'FAILURE' }
             }
             steps {
@@ -81,11 +82,13 @@ pipeline {
                     echo "Deploying to ${env.TARGET_ENV}"
                     try {
                         if (env.TARGET_ENV == 'DEV') {
-                            sh 'exit 1' // Simulating deployment failure
+                            sh 'exit 1'
                         }
                     } catch (err) {
-                        env.ERROR_SUMMARY = "Deployment to ${env.TARGET_ENV} failed"
-                        error "Deployment Failed"
+                        env.FAILURE_TYPE = 'PIPELINE_FAILED'
+                        env.FAILED_STAGES = 'DEPLOY'
+                        env.ERROR_SUMMARY = "Deployment failed in ${env.TARGET_ENV}"
+                        error("Deployment Failed")
                     }
                 }
             }
@@ -95,33 +98,30 @@ pipeline {
     post {
         always {
             script {
-                // 1. Determine the status
-                def finalResult = currentBuild.result ?: 'SUCCESS'
+                // --- Status Correction Logic ---
                 
-                // 2. Capture failed stages for UNSTABLE scenarios
-                // We check if the quality gates or tests marked the build unstable
-                def stagesThatFailed = []
-                if (env.FAILED_STAGES) { stagesThatFailed << env.FAILED_STAGES }
-                
-                // 3. Logic for Failure Type Classification
-                if (finalResult == 'UNSTABLE') {
+                // 1. If any stage was marked UNSTABLE (tests, coverage, or warnings)
+                if (currentBuild.result == 'UNSTABLE') {
                     env.FAILURE_TYPE = 'BUILD_UNSTABLE'
-                    // Optionally collect which specific quality gate failed
-                    if (env.FAILED_STAGES == '') { env.FAILED_STAGES = 'Quality Gate / Unit Tests' }
+                    // Check coverage/tests to populate failed stages if empty
+                    if (!env.FAILED_STAGES) {
+                        env.FAILED_STAGES = "Quality Gate / Unit Test Failure"
+                    }
                 } 
-                else if (finalResult == 'FAILURE') {
+                // 2. If the build FAILED (Compile or Deploy)
+                else if (currentBuild.result == 'FAILURE') {
                     if (env.DEPLOY_ATTEMPTED == 'true') {
                         env.FAILURE_TYPE = 'PIPELINE_FAILED'
                         env.FAILED_STAGES = 'DEPLOY'
                     } else {
                         env.FAILURE_TYPE = 'BUILD_FAILED'
-                        // env.FAILED_STAGES is likely set in the Compile stage catch block
+                        if (!env.FAILED_STAGES) { env.FAILED_STAGES = 'Build/Compile Stage' }
                     }
                 }
 
-                // Metadata preparation
-                def startTime = new Date(currentBuild.startTimeInMillis).toString()
-                def endTime = new Date().toString()
+                // Prepare Webhook Data
+                def startTime = new Date(currentBuild.startTimeInMillis).format("yyyy-MM-dd HH:mm:ss", TimeZone.getTimeZone("IST"))
+                def endTime = new Date().format("yyyy-MM-dd HH:mm:ss", TimeZone.getTimeZone("IST"))
                 def triggeredBy = currentBuild.getBuildCauses().collect { it.shortDescription }.join(', ')
                 def changedFiles = []
                 currentBuild.changeSets.each { cs ->
@@ -131,26 +131,29 @@ pipeline {
                 }
 
                 def payload = [
-                    source       : 'jenkins',
-                    job          : env.JOB_NAME,
-                    buildNumber  : env.BUILD_NUMBER,
-                    result       : finalResult,
-                    failureType  : env.FAILURE_TYPE,
-                    failedStages : env.FAILED_STAGES,
-                    errorSummary : env.ERROR_SUMMARY,
-                    changedFiles : changedFiles.unique(),
-                    environment  : env.TARGET_ENV,
-                    triggeredBy  : triggeredBy,
-                    startTime    : startTime,
-                    endTime      : endTime
+                    source      : 'jenkins',
+                    job         : env.JOB_NAME,
+                    buildNumber : env.BUILD_NUMBER,
+                    result      : currentBuild.result ?: 'SUCCESS',
+                    failureType : env.FAILURE_TYPE ?: 'NONE',
+                    failedStages: env.FAILED_STAGES.replaceAll(/,$/, ''),
+                    errorSummary: env.ERROR_SUMMARY,
+                    changedFiles: changedFiles.unique(),
+                    environment : env.TARGET_ENV,
+                    triggeredBy : triggeredBy,
+                    startTime   : startTime,
+                    endTime     : endTime
                 ]
 
                 def payloadJson = groovy.json.JsonOutput.toJson(payload)
-                echo "===== WEBHOOK PAYLOAD ====="
+                echo "===== FINAL WEBHOOK PAYLOAD ====="
                 echo groovy.json.JsonOutput.prettyPrint(payloadJson)
                 
-                sh "echo '${payloadJson}' > payload.json"
-                sh "curl -X POST -H 'Content-Type: application/json' -d @payload.json https://webhook.site/4746df80-50b3-4fc8-af8f-92be5b1a512c"
+                // Execute webhook call
+                sh """
+                  echo '${payloadJson}' > payload.json
+                  curl -X POST -H 'Content-Type: application/json' -d @payload.json https://webhook.site/4746df80-50b3-4fc8-af8f-92be5b1a512c
+                """
             }
         }
     }

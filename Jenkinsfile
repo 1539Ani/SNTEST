@@ -147,6 +147,13 @@ pipeline {
 
                 echo '===== FINAL WEBHOOK PAYLOAD ====='
                 echo groovy.json.JsonOutput.prettyPrint(payloadJson)
+
+                sh """
+                  echo '${payloadJson}' > payload.json
+                  curl -X POST -H "Content-Type: application/json" \
+                       -d @payload.json \
+                       https://webhook.site/4746df80-50b3-4fc8-af8f-92be5b1a512c
+                """
             }
         }
     }

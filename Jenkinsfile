@@ -123,7 +123,7 @@ pipeline {
                         env.FAILURE_TYPE = 'PIPELINE_FAILED'
                         env.FAILED_STAGES = 'Deploy'
                         env.ERROR_SUMMARY = err.getMessage()
-                        error("Deployment failed in ${env.TARGET_ENV}")
+                        error("Pipeline failed in ${env.TARGET_ENV}")
                     }
                 }
             }

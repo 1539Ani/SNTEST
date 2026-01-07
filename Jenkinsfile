@@ -34,7 +34,6 @@ pipeline {
                             sh 'mvn clean compile'
                         }
                     } catch (err) {
-                        env.FAILURE_TYPE = 'BUILD_FAILED'
                         env.ERROR_SUMMARY = err.getMessage()
                         error('Build failed during compilation')
                     }
@@ -100,7 +99,7 @@ pipeline {
         }
 
         /* ================= DEPLOYMENT ================= */
-        stage('Deploy') {
+        stage('DEPLOY') {
             when {
                 expression { currentBuild.result != 'FAILURE' }
             }
@@ -111,7 +110,7 @@ pipeline {
 
                         // For testing, you can simulate failure on PDI
                         if (env.TARGET_ENV == 'DEV') {
-                            sh 'Pipeline failed in' + ${env.TARGET_ENV}
+                            sh "echo Pipeline failed in + ${env.TARGET_ENV}"
                             sh 'exit 1'
                         } else {
                             sh 'echo Deployment successful'
@@ -130,11 +129,12 @@ pipeline {
                 if (currentBuild.currentResult == 'UNSTABLE') {
                     env.FAILURE_TYPE = 'BUILD_UNSTABLE'
                 } else if (currentBuild.currentResult == 'FAILURE') {
-                    if (env.DEPLOY_ATTEMPTED = 'true') {
+                    if (env.DEPLOY_ATTEMPTED == 'true') {
                         env.FAILURE_TYPE = 'PIPELINE_FAILED'
                         env.FAILED_STAGES = 'DEPLOY'
                     } else {
                         env.FAILURE_TYPE = 'BUILD_FAILED'
+                        env.FAILED_STAGES = 'Compile Error or Run Time Exceptions'
                     }
                 }
                 

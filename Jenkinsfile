@@ -5,8 +5,6 @@ pipeline {
         PATH = "/opt/homebrew/bin:${env.PATH}"
 
         DEPLOY_ATTEMPTED = 'false'
-        BUILD_UNSTABLE_DETECTED = 'false'
-
         FAILURE_TYPE = 'NONE'
         FAILED_STAGES = ''
         ERROR_SUMMARY = ''
@@ -31,7 +29,7 @@ pipeline {
                     } catch (err) {
                         env.FAILED_STAGES = 'Compile Java Code'
                         env.ERROR_SUMMARY = err.getMessage()
-                        error('Build failed during compilation')
+                        currentBuild.result = 'FAILURE'
                     }
                 }
             }
@@ -47,7 +45,6 @@ pipeline {
                 }
                 script {
                     if (currentBuild.currentResult == 'UNSTABLE') {
-                        env.BUILD_UNSTABLE_DETECTED = 'true'
                         env.FAILED_STAGES += 'Unit Tests,'
                     }
                 }
@@ -59,14 +56,13 @@ pipeline {
                 dir('Test') {
                     sh 'mvn jacoco:report'
                     recordCoverage qualityGates: [
-                        [metric: 'LINE',   threshold: 80.0],
+                        [metric: 'LINE', threshold: 80.0],
                         [metric: 'BRANCH', threshold: 70.0]
                     ],
                     tools: [[pattern: 'target/site/jacoco/jacoco.xml']]
                 }
                 script {
                     if (currentBuild.currentResult == 'UNSTABLE') {
-                        env.BUILD_UNSTABLE_DETECTED = 'true'
                         env.FAILED_STAGES += 'Code Coverage,'
                     }
                 }
@@ -83,7 +79,6 @@ pipeline {
                 }
                 script {
                     if (currentBuild.currentResult == 'UNSTABLE') {
-                        env.BUILD_UNSTABLE_DETECTED = 'true'
                         env.FAILED_STAGES += 'Warnings,'
                     }
                 }
@@ -101,14 +96,12 @@ pipeline {
 
                     try {
                         if (env.TARGET_ENV == 'DEV') {
-                            sh 'exit 1'   // simulate failure
-                        } else {
-                            sh 'echo Deployment successful'
+                            sh 'exit 1'
                         }
                     } catch (err) {
                         env.FAILED_STAGES = 'DEPLOY'
-                        env.ERROR_SUMMARY = err.getMessage()
-                        error('Deployment Failed')
+                        env.ERROR_SUMMARY = 'Deployment failed'
+                        currentBuild.result = 'FAILURE'
                     }
                 }
             }
@@ -139,20 +132,14 @@ pipeline {
                     failedStages : (env.FAILED_STAGES ?: '').replaceAll(/,$/, ''),
                     errorSummary : env.ERROR_SUMMARY ?: '',
                     environment  : env.TARGET_ENV,
-                    triggeredBy  : currentBuild.getBuildCauses().collect { it.shortDescription }.join(', ')
+                    triggeredBy  : currentBuild.getBuildCauses()
+                        .collect { it.shortDescription }.join(', ')
                 ]
 
                 def payloadJson = groovy.json.JsonOutput.toJson(payload)
 
                 echo '===== FINAL WEBHOOK PAYLOAD ====='
                 echo groovy.json.JsonOutput.prettyPrint(payloadJson)
-
-                sh """
-                  echo '${payloadJson}' > payload.json
-                  curl -X POST -H "Content-Type: application/json" \
-                       -d @payload.json \
-                       https://webhook.site/4746df80-50b3-4fc8-af8f-92be5b1a512c
-                """
             }
         }
     }

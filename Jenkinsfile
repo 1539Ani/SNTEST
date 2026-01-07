@@ -2,8 +2,11 @@ pipeline {
     agent any
 
     environment {
-        DEPLOY_ATTEMPTED = 'false'
         PATH = "/opt/homebrew/bin:${env.PATH}"
+
+        DEPLOY_ATTEMPTED = 'false'
+        BUILD_UNSTABLE_DETECTED = 'false'
+
         FAILURE_TYPE = 'NONE'
         FAILED_STAGES = ''
         ERROR_SUMMARY = ''
@@ -11,6 +14,7 @@ pipeline {
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 checkout scm
@@ -26,8 +30,8 @@ pipeline {
                         }
                     } catch (err) {
                         env.FAILED_STAGES = 'Compile Java Code'
-                        env.ERROR_SUMMARY = "Compilation failed: ${err.getMessage()}"
-                        error("Stopping pipeline: Build Failure")
+                        env.ERROR_SUMMARY = err.getMessage()
+                        error('Build failed during compilation')
                     }
                 }
             }
@@ -41,18 +45,29 @@ pipeline {
                         junit 'target/surefire-reports/*.xml'
                     }
                 }
+                script {
+                    if (currentBuild.currentResult == 'UNSTABLE') {
+                        env.BUILD_UNSTABLE_DETECTED = 'true'
+                        env.FAILED_STAGES += 'Unit Tests,'
+                    }
+                }
             }
         }
 
         stage('Code Coverage') {
             steps {
+                dir('Test') {
+                    sh 'mvn jacoco:report'
+                    recordCoverage qualityGates: [
+                        [metric: 'LINE',   threshold: 80.0],
+                        [metric: 'BRANCH', threshold: 70.0]
+                    ],
+                    tools: [[pattern: 'target/site/jacoco/jacoco.xml']]
+                }
                 script {
-                    dir('Test') {
-                        sh 'mvn jacoco:report'
-                        recordCoverage qualityGates: [
-                            [integerThreshold: 80, metric: 'LINE', threshold: 80.0], 
-                            [integerThreshold: 70, metric: 'BRANCH', threshold: 70.0]
-                        ], tools: [[pattern: 'target/site/jacoco/jacoco.xml']]
+                    if (currentBuild.currentResult == 'UNSTABLE') {
+                        env.BUILD_UNSTABLE_DETECTED = 'true'
+                        env.FAILED_STAGES += 'Code Coverage,'
                     }
                 }
             }
@@ -66,27 +81,34 @@ pipeline {
                         qualityGates: [[threshold: 10, type: 'TOTAL', unstable: true]]
                     )
                 }
+                script {
+                    if (currentBuild.currentResult == 'UNSTABLE') {
+                        env.BUILD_UNSTABLE_DETECTED = 'true'
+                        env.FAILED_STAGES += 'Warnings,'
+                    }
+                }
             }
         }
 
         stage('DEPLOY') {
             when {
-                // Scenario 1 Check: If Compile failed, this stage is skipped entirely
-                expression { currentBuild.result != 'FAILURE' }
+                expression { currentBuild.currentResult != 'FAILURE' }
             }
             steps {
                 script {
                     env.DEPLOY_ATTEMPTED = 'true'
                     echo "Deploying to ${env.TARGET_ENV}"
+
                     try {
                         if (env.TARGET_ENV == 'DEV') {
-                            // Scenario 3 Trigger: Forced failure
-                            sh 'exit 1'
+                            sh 'exit 1'   // simulate failure
+                        } else {
+                            sh 'echo Deployment successful'
                         }
                     } catch (err) {
                         env.FAILED_STAGES = 'DEPLOY'
-                        env.ERROR_SUMMARY = "Deployment failed in ${env.TARGET_ENV}"
-                        error("Deployment Failed")
+                        env.ERROR_SUMMARY = err.getMessage()
+                        error('Deployment Failed')
                     }
                 }
             }
@@ -96,58 +118,40 @@ pipeline {
     post {
         always {
             script {
-                // Use currentResult to capture the final outcome of the pipeline
-                def buildStatus = currentBuild.currentResult ?: 'SUCCESS'
-                
-                // LOGIC: Classification based on your requirements
-                if (buildStatus == 'FAILURE') {
+                def result = currentBuild.currentResult ?: 'SUCCESS'
+
+                if (result == 'FAILURE') {
                     if (env.DEPLOY_ATTEMPTED == 'true') {
-                        // Scenario 3
                         env.FAILURE_TYPE = 'PIPELINE_FAILED'
-                        env.FAILED_STAGES = env.FAILED_STAGES ?: 'DEPLOY'
                     } else {
-                        // Scenario 1
                         env.FAILURE_TYPE = 'BUILD_FAILED'
-                        env.FAILED_STAGES = env.FAILED_STAGES ?: 'Compile Java Code'
                     }
-                } 
-                else if (buildStatus == 'UNSTABLE') {
-                    // Scenario 2
+                } else if (result == 'UNSTABLE') {
                     env.FAILURE_TYPE = 'BUILD_UNSTABLE'
-                    if (!env.FAILED_STAGES) { 
-                        env.FAILED_STAGES = 'Quality Gate (Coverage/Tests/Warnings)' 
-                    }
                 }
 
-                // Metadata prep
-                def startTime = new Date(currentBuild.startTimeInMillis).format("yyyy-MM-dd HH:mm:ss", TimeZone.getTimeZone("IST"))
-                def endTime = new Date().format("yyyy-MM-dd HH:mm:ss", TimeZone.getTimeZone("IST"))
-                def triggeredBy = currentBuild.getBuildCauses().collect { it.shortDescription }.join(', ')
-                
-                // Null-safe fix for the replaceAll error
-                def cleanStages = (env.FAILED_STAGES ?: '').replaceAll(/,$/, '')
-
                 def payload = [
-                    source      : 'jenkins',
-                    job         : env.JOB_NAME,
-                    buildNumber : env.BUILD_NUMBER,
-                    result      : buildStatus,
-                    failureType : env.FAILURE_TYPE,
-                    failedStages: cleanStages,
-                    errorSummary: env.ERROR_SUMMARY ?: '',
-                    environment : env.TARGET_ENV,
-                    triggeredBy : triggeredBy,
-                    startTime   : startTime,
-                    endTime     : endTime
+                    source       : 'jenkins',
+                    job          : env.JOB_NAME,
+                    buildNumber  : env.BUILD_NUMBER,
+                    result       : result,
+                    failureType  : env.FAILURE_TYPE,
+                    failedStages : (env.FAILED_STAGES ?: '').replaceAll(/,$/, ''),
+                    errorSummary : env.ERROR_SUMMARY ?: '',
+                    environment  : env.TARGET_ENV,
+                    triggeredBy  : currentBuild.getBuildCauses().collect { it.shortDescription }.join(', ')
                 ]
 
                 def payloadJson = groovy.json.JsonOutput.toJson(payload)
-                echo "===== WEBHOOK OUTPUT FOR SCENARIO ====="
+
+                echo '===== FINAL WEBHOOK PAYLOAD ====='
                 echo groovy.json.JsonOutput.prettyPrint(payloadJson)
-                
+
                 sh """
                   echo '${payloadJson}' > payload.json
-                  curl -X POST -H 'Content-Type: application/json' -d @payload.json https://webhook.site/4746df80-50b3-4fc8-af8f-92be5b1a512c
+                  curl -X POST -H "Content-Type: application/json" \
+                       -d @payload.json \
+                       https://webhook.site/4746df80-50b3-4fc8-af8f-92be5b1a512c
                 """
             }
         }

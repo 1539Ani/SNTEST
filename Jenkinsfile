@@ -2,6 +2,7 @@ pipeline {
     agent any
 
     environment {
+        DEPLOY_ATTEMPTED = 'false'
         // Use locally installed Maven (Homebrew path)
         PATH = "/opt/homebrew/bin:${env.PATH}"
 
@@ -105,22 +106,17 @@ pipeline {
             }
             steps {
                 script {
-                    try {
+                    env.DEPLOY_ATTEMPTED = 'true'
                         echo "Deploying to ${env.TARGET_ENV}"
 
                         // For testing, you can simulate failure on PDI
                         if (env.TARGET_ENV == 'DEV') {
+                            sh 'Pipeline failed in' + ${env.TARGET_ENV}
                             sh 'exit 1'
                         } else {
                             sh 'echo Deployment successful'
                         }
 
-                    } catch (err) {
-                        env.FAILURE_TYPE = 'PIPELINE_FAILED'
-                        env.FAILED_STAGES = 'Deploy'
-                        env.ERROR_SUMMARY = err.getMessage()
-                        error("Pipeline failed in ${env.TARGET_ENV}")
-                    }
                 }
             }
         }
@@ -130,12 +126,13 @@ pipeline {
         always {
             script {
 
-                //Classification of Failed type
+                //Classification of failure types
                 if (currentBuild.currentResult == 'UNSTABLE') {
                     env.FAILURE_TYPE = 'BUILD_UNSTABLE'
                 } else if (currentBuild.currentResult == 'FAILURE') {
-                    if (env.FAILED_STAGES == 'Deploy') {
+                    if (env.DEPLOY_ATTEMPTED = 'true') {
                         env.FAILURE_TYPE = 'PIPELINE_FAILED'
+                        env.FAILED_STAGES = 'DEPLOY'
                     } else {
                         env.FAILURE_TYPE = 'BUILD_FAILED'
                     }

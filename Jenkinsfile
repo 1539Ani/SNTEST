@@ -92,27 +92,21 @@ pipeline {
             steps {
                 script {
                     env.DEPLOY_ATTEMPTED = 'true'
-                }
+                    echo "Deploying to ${env.TARGET_ENV}"
         
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    script {
-                        echo "Deploying to ${env.TARGET_ENV}"
+                    int deployStatus = sh(
+                        script: 'exit 1',     // simulate failure
+                        returnStatus: true
+                    )
         
-                        if (env.TARGET_ENV == 'DEV') {
-                            sh 'exit 1'   // simulate deployment failure
-                        }
-                    }
-                }
-        
-                script {
-                    if (currentBuild.currentResult == 'FAILURE') {
+                    if (deployStatus != 0) {
                         env.FAILED_STAGES = 'DEPLOY'
                         env.ERROR_SUMMARY = 'Deployment failed'
+                        currentBuild.result = 'FAILURE'
                     }
                 }
             }
         }
-
     }
 
     post {

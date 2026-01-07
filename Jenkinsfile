@@ -110,7 +110,7 @@ pipeline {
 
                         // For testing, you can simulate failure on PDI
                         if (env.TARGET_ENV == 'DEV') {
-                            sh "echo Pipeline failed in + ${env.TARGET_ENV}"
+                            sh "Pipeline failed in ${env.TARGET_ENV}"
                             sh 'exit 1'
                         } else {
                             sh 'echo Deployment successful'

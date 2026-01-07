@@ -54,7 +54,7 @@ pipeline {
                 script {
                     if (currentBuild.result == 'UNSTABLE') {
                         env.FAILURE_TYPE = 'BUILD_UNSTABLE'
-                        env.FAILED_STAGES = (env.FAILED_STAGES ?: '') + 'Unit Tests,'
+                        env.FAILED_STAGES += 'Unit Tests,'
                     }
                 }
             }
@@ -75,7 +75,7 @@ pipeline {
                 script {
                     if (currentBuild.result == 'UNSTABLE') {
                         env.FAILURE_TYPE = 'BUILD_UNSTABLE'
-                        env.FAILED_STAGES = (env.FAILED_STAGES ?: '') + 'Code Coverage,'
+                        env.FAILED_STAGES += 'Code Coverage,'
                     }
                 }
             }
@@ -96,7 +96,7 @@ pipeline {
                 script {
                     if (currentBuild.result == 'UNSTABLE') {
                         env.FAILURE_TYPE = 'BUILD_UNSTABLE'
-                        env.FAILED_STAGES = (env.FAILED_STAGES ?: '') + 'Warnings,'
+                        env.FAILED_STAGES += 'Warnings,'
                     }
                 }
             }

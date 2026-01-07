@@ -34,7 +34,6 @@ pipeline {
                         }
                     } catch (err) {
                         env.FAILURE_TYPE = 'BUILD_FAILED'
-                        env.FAILED_STAGES = 'Compile'
                         env.ERROR_SUMMARY = err.getMessage()
                         error('Build failed during compilation')
                     }
@@ -53,7 +52,6 @@ pipeline {
                 }
                 script {
                     if (currentBuild.result == 'UNSTABLE') {
-                        env.FAILURE_TYPE = 'BUILD_UNSTABLE'
                         env.FAILED_STAGES += 'Unit Tests,'
                     }
                 }
@@ -74,7 +72,6 @@ pipeline {
                 }
                 script {
                     if (currentBuild.result == 'UNSTABLE') {
-                        env.FAILURE_TYPE = 'BUILD_UNSTABLE'
                         env.FAILED_STAGES += 'Code Coverage,'
                     }
                 }
@@ -95,7 +92,6 @@ pipeline {
                 }
                 script {
                     if (currentBuild.result == 'UNSTABLE') {
-                        env.FAILURE_TYPE = 'BUILD_UNSTABLE'
                         env.FAILED_STAGES += 'Warnings,'
                     }
                 }
@@ -133,6 +129,18 @@ pipeline {
     post {
         always {
             script {
+
+                //Classification of Failed type
+                if (currentBuild.currentResult == 'UNSTABLE') {
+                    env.FAILURE_TYPE = 'BUILD_UNSTABLE'
+                } else if (currentBuild.currentResult == 'FAILURE') {
+                    if (env.FAILED_STAGES == 'Deploy') {
+                        env.FAILURE_TYPE = 'PIPELINE_FAILED'
+                    } else {
+                        env.FAILURE_TYPE = 'BUILD_FAILED'
+                    }
+                }
+                
                 def startTime = new Date(currentBuild.startTimeInMillis).toString()
                 def endTime = new Date().toString()
                 def triggeredBy = currentBuild.getBuildCauses()

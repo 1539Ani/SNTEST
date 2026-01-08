@@ -10,7 +10,7 @@ pipeline {
         // Stores a short error summary, e.g., compilation or deployment errors
         ERROR_SUMMARY = ''
         // Target deployment environment (DEV / PDI / NONPROD / PROD)
-        TARGET_ENV = 'PDI'
+        TARGET_ENV = 'DEV'
     }
 
     stages {
@@ -79,26 +79,21 @@ pipeline {
         }
 
         /* ================= DEPLOYMENT ================= */
-        stage('DEPLOY') {
-            when {
-                expression { currentBuild.currentResult != 'FAILURE'  || currentBuild.currentResult != 'UNSTABLE'}
-            }
+       stage('DEPLOY') {
             steps {
-                // catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    script {
-                        // Set flag AFTER entering catchError to persist properly
-                        env.DEPLOY_ATTEMPTED = 'true'
-                        echo "Deploying to ${env.TARGET_ENV}"
+                script {
+                    env.DEPLOY_ATTEMPTED = 'true'
+                    echo "Deploying to ${env.TARGET_ENV}"
         
-                        if (env.TARGET_ENV == 'DEV') {
-                            echo "Pipeline failed in ${env.TARGET_ENV}"
-                        } else {
-                            echo 'Deployment successful'
-                        }
+                    if (env.TARGET_ENV != 'DEV') {
+                        error("Deployment failed for ${env.TARGET_ENV}")
+                    } else {
+                        echo "Deployment successful"
                     }
-                // }
+                }
             }
         }
+
     }
 
     post {

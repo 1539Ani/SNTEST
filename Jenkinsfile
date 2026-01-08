@@ -67,7 +67,11 @@ pipeline {
             steps {
                 recordIssues(
                     tool: java(),
-                    qualityGates: [[threshold: 10, unstable: true]]
+                    qualityGates: [[
+                            type: 'TOTAL',
+                            threshold: 10,
+                            unstable: true
+                        ]]
                 )
             }
         }

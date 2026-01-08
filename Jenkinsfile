@@ -72,10 +72,15 @@ pipeline {
                 }
             }
             post {
-                unstable {
+                always {
                     script {
-                        env.COVERAGE_UNSTABLE = 'true'
-                        env.FAILED_STAGES += 'Code Coverage,'
+                        def coverageAction = currentBuild.rawBuild.getAction(jenkins.plugins.jacoco.JacocoBuildAction)
+                        if (coverageAction) {
+                            def branchCoverage = coverageAction.result.branchCoveragePercentage
+                            if (branchCoverage < 70) {
+                                env.COVERAGE_UNSTABLE = 'true'
+                            }
+                        }
                     }
                 }
             }
@@ -129,7 +134,9 @@ pipeline {
         always {
             script {
 
-                if (currentBuild.currentResult == 'UNSTABLE') {
+                if (env.COVERAGE_UNSTABLE == 'true') env.FAILED_STAGES += 'Code Coverage,'
+
+                if (currentBuild.currentResult == 'UNSTABLE' && env.COVERAGE_UNSTABLE == true) {
                     env.FAILURE_TYPE = 'BUILD_UNSTABLE'
                 }
                 else if (currentBuild.currentResult == 'FAILURE') {

@@ -6,9 +6,7 @@ pipeline {
         // Use locally installed Maven (Homebrew path)
         PATH = "/opt/homebrew/bin:${env.PATH}"
 
-        COVERAGE_UNSTABLE  = 'false'
         FAILURE_TYPE = ''
-        FAILED_STAGES = ''
         // Stores a short error summary, e.g., compilation or deployment errors
         ERROR_SUMMARY = ''
         // Target deployment environment (DEV / PDI / NONPROD / PROD)
@@ -49,11 +47,6 @@ pipeline {
                         junit 'target/surefire-reports/*.xml'
                     }
                 }
-                script {
-                    if (currentBuild.result == 'UNSTABLE') {
-                        env.FAILED_STAGES += 'Unit Tests,'
-                    }
-                }
             }
         }
 
@@ -69,11 +62,6 @@ pipeline {
                             recordCoverage qualityGates: [[integerThreshold: 80, metric: 'LINE', threshold: 80.0], [integerThreshold: 70, metric:                             'BRANCH', threshold: 70.0]], tools: [[pattern: 'target/site/jacoco/jacoco.xml']]
                     }
                 }
-                script {
-                    if (currentBuild.result == 'SUCCESS') {
-                        env.FAILED_STAGES += 'Code Coverage,'
-                    }
-                }
             }
         }
         /* ================= WARNINGS ================= */
@@ -86,11 +74,6 @@ pipeline {
                             [threshold: 10, type: 'TOTAL', unstable: true]
                         ]
                     )
-                }
-                script {
-                    if (currentBuild.result == 'UNSTABLE') {
-                        env.FAILED_STAGES += 'Warnings,'
-                    }
                 }
             }
         }
@@ -124,18 +107,15 @@ pipeline {
         always {
             script {
 
-                if (env.COVERAGE_UNSTABLE == 'true') env.FAILED_STAGES += 'Code Coverage,'
 
-                if (currentBuild.currentResult == 'UNSTABLE' && env.COVERAGE_UNSTABLE == true) {
+                if (currentBuild.currentResult == 'UNSTABLE') {
                     env.FAILURE_TYPE = 'BUILD_UNSTABLE'
                 }
                 else if (currentBuild.currentResult == 'FAILURE') {
                     if (env.DEPLOY_ATTEMPTED == 'true') {
                         env.FAILURE_TYPE = 'PIPELINE_FAILED'
-                        env.FAILED_STAGES += 'DEPLOY'
                     } else {
                         env.FAILURE_TYPE = 'BUILD_FAILED'
-                        env.FAILED_STAGES = 'Compile'
                     }
                 }
                 else {
@@ -157,15 +137,12 @@ pipeline {
                     }
                 }
 
-                def failedStagesClean = (env.FAILED_STAGES ?: '').trim().replaceAll(/,$/, '')
-
                 def payload = [
                     source        : 'jenkins',
                     job           : env.JOB_NAME,
                     buildNumber   : env.BUILD_NUMBER,
                     result        : currentBuild.currentResult,
                     failureType   : env.FAILURE_TYPE ?: 'NONE',
-                    failedStages  : failedStagesClean,
                     errorSummary  : env.ERROR_SUMMARY ?: '',
                     changedFiles  : changedFiles.unique(),
                     environment   : env.TARGET_ENV ?: '',

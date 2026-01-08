@@ -84,13 +84,12 @@ pipeline {
                 expression { currentBuild.currentResult != 'FAILURE' }
             }
             steps {
-                script {
-                    env.DEPLOY_ATTEMPTED = 'true'
-                    echo "Deploying to ${env.TARGET_ENV}"
-                }
-        
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     script {
+                        // Set flag AFTER entering catchError to persist properly
+                        env.DEPLOY_ATTEMPTED = 'true'
+                        echo "Deploying to ${env.TARGET_ENV}"
+        
                         if (env.TARGET_ENV == 'DEV') {
                             echo "Pipeline failed in ${env.TARGET_ENV}"
                             sh 'exit 1'

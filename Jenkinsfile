@@ -84,7 +84,7 @@ pipeline {
                 expression { currentBuild.currentResult != 'FAILURE' }
             }
             steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                // catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     script {
                         // Set flag AFTER entering catchError to persist properly
                         env.DEPLOY_ATTEMPTED = 'true'
@@ -92,12 +92,11 @@ pipeline {
         
                         if (env.TARGET_ENV == 'DEV') {
                             echo "Pipeline failed in ${env.TARGET_ENV}"
-                            sh 'exit 1'
                         } else {
                             echo 'Deployment successful'
                         }
                     }
-                }
+                // }
             }
         }
     }

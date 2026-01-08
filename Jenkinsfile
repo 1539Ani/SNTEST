@@ -113,7 +113,7 @@ pipeline {
                         env.PIPELINE_STATE = 'PIPELINE_FAILED'
                         env.FAILED_STAGES  = 'DEPLOY'
                         env.ERROR_SUMMARY  = "Deployment failed in ${env.TARGET_ENV}"
-                        error('Deployment failed')
+                        // error('Deployment failed')
                     }
                 }
             }

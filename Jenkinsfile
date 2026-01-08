@@ -10,7 +10,7 @@ pipeline {
         // Stores a short error summary, e.g., compilation or deployment errors
         ERROR_SUMMARY = ''
         // Target deployment environment (DEV / PDI / NONPROD / PROD)
-        TARGET_ENV = 'PDI'
+        TARGET_ENV = 'DEV'
     }
 
     stages {
@@ -107,18 +107,13 @@ pipeline {
         always {
             script {
 
-
-                if (currentBuild.currentResult == 'UNSTABLE') {
-                    env.FAILURE_TYPE = 'BUILD_UNSTABLE'
-                }
-                else if (currentBuild.currentResult == 'FAILURE') {
+                if (currentBuild.currentResult == 'FAILURE') {
                     if (env.DEPLOY_ATTEMPTED == 'true') {
                         env.FAILURE_TYPE = 'PIPELINE_FAILED'
                     } else {
                         env.FAILURE_TYPE = 'BUILD_FAILED'
                     }
-                }
-                else {
+                } else {
                     env.FAILURE_TYPE = 'NONE'
                 }
 

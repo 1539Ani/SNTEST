@@ -60,32 +60,22 @@ pipeline {
         /* ================= CODE COVERAGE ================= */
         stage('Code Coverage') {
             steps {
-                dir('Test') {
-                    sh 'mvn jacoco:report'
-                    recordCoverage(
-                        qualityGates: [
-                            [metric: 'LINE', threshold: 80.0],
-                            [metric: 'BRANCH', threshold: 70.0]
-                        ],
-                        tools: [[pattern: 'target/site/jacoco/jacoco.xml']]
-                    )
+                script {
+                    dir('Test') {
+                        // Generate coverage report
+                        sh 'mvn jacoco:report'
+        
+                        // Record coverage in Jenkins
+                            recordCoverage qualityGates: [[integerThreshold: 80, metric: 'LINE', threshold: 80.0], [integerThreshold: 70, metric:                             'BRANCH', threshold: 70.0]], tools: [[pattern: 'target/site/jacoco/jacoco.xml']]
+                    }
                 }
-            }
-            post {
-                always {
-                    script {
-                        def coverageAction = currentBuild.rawBuild.getAction(jenkins.plugins.jacoco.JacocoBuildAction)
-                        if (coverageAction) {
-                            def branchCoverage = coverageAction.result.branchCoveragePercentage
-                            if (branchCoverage < 70) {
-                                env.COVERAGE_UNSTABLE = 'true'
-                            }
-                        }
+                script {
+                    if (currentBuild.result == 'SUCCESS') {
+                        env.FAILED_STAGES += 'Code Coverage,'
                     }
                 }
             }
         }
-
         /* ================= WARNINGS ================= */
         stage('Static Analysis (Warnings)') {
             steps {

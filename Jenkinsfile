@@ -87,6 +87,7 @@ pipeline {
         
                     if (env.TARGET_ENV != 'DEV') {
                         error("Deployment failed for ${env.TARGET_ENV}")
+                        sh 'exit 1'
                     } else {
                         echo "Deployment successful"
                     }

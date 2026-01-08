@@ -81,7 +81,7 @@ pipeline {
         /* ================= DEPLOYMENT ================= */
         stage('DEPLOY') {
             when {
-                expression { currentBuild.currentResult != 'FAILURE' }
+                expression { currentBuild.currentResult != 'FAILURE'  || currentBuild.currentResult != 'UNSTABLE'}
             }
             steps {
                 // catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {

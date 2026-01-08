@@ -6,9 +6,8 @@ pipeline {
         // Use locally installed Maven (Homebrew path)
         PATH = "/opt/homebrew/bin:${env.PATH}"
 
-        // Tracks the type of failure: BUILD_FAILED, BUILD_UNSTABLE, PIPELINE_FAILED, or NONE
+        COVERAGE_UNSTABLE  = 'false'
         FAILURE_TYPE = ''
-        // Tracks multiple stages that caused UNSTABLE (quality failures)
         FAILED_STAGES = ''
         // Stores a short error summary, e.g., compilation or deployment errors
         ERROR_SUMMARY = ''
@@ -61,20 +60,23 @@ pipeline {
         /* ================= CODE COVERAGE ================= */
         stage('Code Coverage') {
             steps {
-                catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
-                    dir('Test') {
-                        sh 'mvn jacoco:report'
-                        recordCoverage(
-                            qualityGates: [
-                                [metric: 'LINE', threshold: 80.0],
-                                [metric: 'BRANCH', threshold: 70.0]
-                            ],
-                            tools: [[pattern: 'target/site/jacoco/jacoco.xml']]
-                        )
-                    }
+                dir('Test') {
+                    sh 'mvn jacoco:report'
+                    recordCoverage(
+                        qualityGates: [
+                            [metric: 'LINE', threshold: 80.0],
+                            [metric: 'BRANCH', threshold: 70.0]
+                        ],
+                        tools: [[pattern: 'target/site/jacoco/jacoco.xml']]
+                    )
                 }
-                script {
-                    env.FAILED_STAGES += 'Code Coverage,'
+            }
+            post {
+                unstable {
+                    script {
+                        env.COVERAGE_UNSTABLE = 'true'
+                        env.FAILED_STAGES += 'Code Coverage,'
+                    }
                 }
             }
         }
@@ -127,19 +129,22 @@ pipeline {
         always {
             script {
 
-                //Classification of failure types
                 if (currentBuild.currentResult == 'UNSTABLE') {
                     env.FAILURE_TYPE = 'BUILD_UNSTABLE'
-                } else if (currentBuild.currentResult == 'FAILURE') {
+                }
+                else if (currentBuild.currentResult == 'FAILURE') {
                     if (env.DEPLOY_ATTEMPTED == 'true') {
                         env.FAILURE_TYPE = 'PIPELINE_FAILED'
-                        env.FAILED_STAGES = 'DEPLOY'
+                        env.FAILED_STAGES += 'DEPLOY'
                     } else {
                         env.FAILURE_TYPE = 'BUILD_FAILED'
-                        env.FAILED_STAGES = 'Compile Error or Run Time Exceptions'
+                        env.FAILED_STAGES = 'Compile'
                     }
                 }
-                
+                else {
+                    env.FAILURE_TYPE = 'NONE'
+                }
+
                 def startTime = new Date(currentBuild.startTimeInMillis).toString()
                 def endTime = new Date().toString()
                 def triggeredBy = currentBuild.getBuildCauses()

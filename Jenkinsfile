@@ -100,26 +100,28 @@ pipeline {
 
         /* ================= DEPLOYMENT ================= */
         stage('DEPLOY') {
-            when {
-                expression { currentBuild.result != 'FAILURE' }
+        when {
+            expression { currentBuild.currentResult != 'FAILURE' }
+        }
+        steps {
+            script {
+                env.DEPLOY_ATTEMPTED = 'true'
+                echo "Deploying to ${env.TARGET_ENV}"
             }
-            steps {
+    
+            catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                 script {
-                    env.DEPLOY_ATTEMPTED = 'true'
-                        echo "Deploying to ${env.TARGET_ENV}"
-
-                        // For testing, you can simulate failure on PDI
-                        if (env.TARGET_ENV == 'DEV') {
-                            echo "Pipeline failed in ${env.TARGET_ENV}"
-                            sh 'exit 1'
-                        } else {
-                            echo 'echo Deployment successful'
-                        }
-
+                    if (env.TARGET_ENV == 'DEV') {
+                        echo "Pipeline failed in ${env.TARGET_ENV}"
+                        sh 'exit 1'
+                    } else {
+                        echo 'Deployment successful'
+                    }
                 }
             }
         }
     }
+
 
     post {
         always {

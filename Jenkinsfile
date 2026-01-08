@@ -100,28 +100,28 @@ pipeline {
 
         /* ================= DEPLOYMENT ================= */
         stage('DEPLOY') {
-        when {
-            expression { currentBuild.currentResult != 'FAILURE' }
-        }
-        steps {
-            script {
-                env.DEPLOY_ATTEMPTED = 'true'
-                echo "Deploying to ${env.TARGET_ENV}"
+            when {
+                expression { currentBuild.currentResult != 'FAILURE' }
             }
-    
-            catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+            steps {
                 script {
-                    if (env.TARGET_ENV == 'DEV') {
-                        echo "Pipeline failed in ${env.TARGET_ENV}"
-                        sh 'exit 1'
-                    } else {
-                        echo 'Deployment successful'
+                    env.DEPLOY_ATTEMPTED = 'true'
+                    echo "Deploying to ${env.TARGET_ENV}"
+                }
+        
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    script {
+                        if (env.TARGET_ENV == 'DEV') {
+                            echo "Pipeline failed in ${env.TARGET_ENV}"
+                            sh 'exit 1'
+                        } else {
+                            echo 'Deployment successful'
+                        }
                     }
                 }
             }
         }
     }
-
 
     post {
         always {

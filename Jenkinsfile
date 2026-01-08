@@ -106,6 +106,10 @@ pipeline {
     post {
         always {
             script {
+                
+                def check = true
+                echo "current build check ${currentBuild.currentResult} "
+                echo " deploy attempted check ${env.DEPLOY_ATTEMPTED}"
 
                 if (currentBuild.currentResult == 'FAILURE') {
                     if (env.DEPLOY_ATTEMPTED == 'true') {
@@ -137,6 +141,7 @@ pipeline {
                     job           : env.JOB_NAME,
                     buildNumber   : env.BUILD_NUMBER,
                     result        : currentBuild.currentResult,
+                    test          : check,
                     failureType   : env.FAILURE_TYPE ?: 'NONE',
                     errorSummary  : env.ERROR_SUMMARY ?: '',
                     changedFiles  : changedFiles.unique(),

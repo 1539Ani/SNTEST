@@ -13,7 +13,7 @@ pipeline {
         // Stores a short error summary, e.g., compilation or deployment errors
         ERROR_SUMMARY = ''
         // Target deployment environment (DEV / PDI / NONPROD / PROD)
-        TARGET_ENV = 'DEV'
+        TARGET_ENV = 'PDI'
     }
 
     stages {

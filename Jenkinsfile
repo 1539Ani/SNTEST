@@ -10,7 +10,7 @@ pipeline {
         // Stores a short error summary, e.g., compilation or deployment errors
         ERROR_SUMMARY = ''
         // Target deployment environment (DEV / PDI / NONPROD / PROD)
-        TARGET_ENV = 'DEV'
+        TARGET_ENV = 'PDI'
     }
 
     stages {
@@ -79,22 +79,26 @@ pipeline {
         }
 
         /* ================= DEPLOYMENT ================= */
-       stage('DEPLOY') {
+        stage('DEPLOY') {
+            when {
+                expression { currentBuild.currentResult != 'FAILURE'  || currentBuild.currentResult != 'UNSTABLE'}
+            }
             steps {
-                script {
-                    env.DEPLOY_ATTEMPTED = 'true'
-                    echo "Deploying to ${env.TARGET_ENV}"
+                // catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    script {
+                        // Set flag AFTER entering catchError to persist properly
+                        env.DEPLOY_ATTEMPTED = 'true'
+                        echo "Deploying to ${env.TARGET_ENV}"
         
-                    if (env.TARGET_ENV != 'DEV') {
-                        error("Deployment failed for ${env.TARGET_ENV}")
-                        sh 'exit 1'
-                    } else {
-                        echo "Deployment successful"
+                        if (env.TARGET_ENV == 'DEV') {
+                            echo "Pipeline failed in ${env.TARGET_ENV}"
+                        } else {
+                            echo 'Deployment successful'
+                        }
                     }
-                }
+                // }
             }
         }
-
     }
 
     post {
@@ -154,10 +158,9 @@ pipeline {
                 sh """
                   echo '${payloadJson}' > payload.json
                   curl -X POST \
-                    -H "Content-Type: application/json" \
-                    -d @payloadJson' \
-                    -H "jenkins-token: now_UkZpEJHrHliPa8TyK2ruZXmPkdewfRmemb-RxXlvQDe3Oc9Sb8fmPnpUQDMrPJBhFo6bs2lpALGuG5S2dHcUmQ" \
-                    https://webhook.site/4746df80-50b3-4fc8-af8f-92be5b1a512c
+                       -H "Content-Type: application/json" \
+                       -d @payload.json \
+                       https://webhook.site/4746df80-50b3-4fc8-af8f-92be5b1a512c
                 """
             }
         }

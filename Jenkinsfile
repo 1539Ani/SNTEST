@@ -159,8 +159,9 @@ pipeline {
                   echo '${payloadJson}' > payload.json
                   curl -X POST \
                        -H "Content-Type: application/json" \
+                       // -H "jenkins-token: now_KWFMnVwcWX4rR0fYr_zrqea008rWye55Oe5R9SjwPvRmUw91tw_I1ZfoRssp_1Dpk-ztEiFEFahpXmycbMuhrw" \
                        -d @payload.json \
-                       https://webhook.site/4746df80-50b3-4fc8-af8f-92be5b1a512c
+                       https://techmtriggersdev.service-now.com/api/sn_jenkinsv2_spoke/jenkins_build_unstable?X-SkipCookieAuthentication=true&authorization=now_u3g9sEMHBomHRav_TA6ROWOVaP5afgjqxLRwXqXW-qMoLgh5EdNrNaGvZan8eUVCQMoWVUDGlilpkwzMt9w4qA
                 """
             }
         }

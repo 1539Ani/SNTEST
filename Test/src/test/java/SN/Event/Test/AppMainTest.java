@@ -29,5 +29,6 @@ class AppMainTest {
 
         // Restore System.out
         System.setOut(originalOut);
+        
     }
 }

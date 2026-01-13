@@ -152,9 +152,10 @@ pipeline {
                 echo "==========================="
 
                 sh """
+                  echo '${payloadJson}' > payload.json
                   curl -X POST \
                     -H "Content-Type: application/json" \
-                    -d '${payloadJson}' \
+                    -d @payloadJson' \
                     -H "jenkins-token: now_UkZpEJHrHliPa8TyK2ruZXmPkdewfRmemb-RxXlvQDe3Oc9Sb8fmPnpUQDMrPJBhFo6bs2lpALGuG5S2dHcUmQ" \
                     https://webhook.site/4746df80-50b3-4fc8-af8f-92be5b1a512c
                 """

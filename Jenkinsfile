@@ -161,7 +161,7 @@ pipeline {
                        -H "Content-Type: application/json" \
                        // -H "jenkins-token: now_KWFMnVwcWX4rR0fYr_zrqea008rWye55Oe5R9SjwPvRmUw91tw_I1ZfoRssp_1Dpk-ztEiFEFahpXmycbMuhrw" \
                        -d @payload.json \
-                       https://techmtriggersdev.service-now.com/api/sn_jenkinsv2_spoke/jenkins_build_unstable?X-SkipCookieAuthentication=true&authorization=now_u3g9sEMHBomHRav_TA6ROWOVaP5afgjqxLRwXqXW-qMoLgh5EdNrNaGvZan8eUVCQMoWVUDGlilpkwzMt9w4qA
+                       https://techmtriggersdev.service-now.com/api/sn_jenkinsv2_spoke/testjenkins?X-SkipCookieAuthentication=true&jenkins-token=now_lNgxLGgf_qQ_HU_BrOUFY5jriG4g9yh0KyHfQzOtWeAyIlWqGO7GDR96LNYkHyHLxVgsg30RFesdfTBx35pvug
                 """
             }
         }

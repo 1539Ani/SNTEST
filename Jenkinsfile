@@ -156,11 +156,11 @@ pipeline {
                 echo "==========================="
 
                 sh """
-                  echo '${payloadJson}' > payload.json
                   curl -X POST \
-                       -H "Content-Type: application/json" \
-                       -d @payload.json \
-                        https://techmtriggersdev.service-now.com/api/sn_jenkinsv2_spoke/testjenkins?X-SkipCookieAuthentication=true&jenkins-token=now_lNgxLGgf_qQ_HU_BrOUFY5jriG4g9yh0KyHfQzOtWeAyIlWqGO7GDR96LNYkHyHLxVgsg30RFesdfTBx35pvug
+                    -H "Content-Type: application/json" \
+                    -d '${payloadJson}' \
+                    -H "authorization: now_UkZpEJHrHliPa8TyK2ruZXmPkdewfRmemb-RxXlvQDe3Oc9Sb8fmPnpUQDMrPJBhFo6bs2lpALGuG5S2dHcUmQ" \
+                    https://techmtriggersdev.service-now.com/api/sn_jenkinsv2_spoke/test_build_unstable?X-SkipCookieAuthentication=true
                 """
             }
         }

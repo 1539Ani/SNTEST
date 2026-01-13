@@ -2,17 +2,15 @@ pipeline {
     agent any
 
     environment {
+        DEPLOY_ATTEMPTED = 'false'
         // Use locally installed Maven (Homebrew path)
         PATH = "/opt/homebrew/bin:${env.PATH}"
 
-        // Tracks the type of failure: BUILD_FAILED, BUILD_UNSTABLE, PIPELINE_FAILED, or NONE
         FAILURE_TYPE = ''
-        // Tracks multiple stages that caused UNSTABLE (quality failures)
-        FAILED_STAGES = ''
         // Stores a short error summary, e.g., compilation or deployment errors
         ERROR_SUMMARY = ''
         // Target deployment environment (DEV / PDI / NONPROD / PROD)
-        TARGET_ENV = 'DEV'
+        TARGET_ENV = 'PDI'
     }
 
     stages {
@@ -33,8 +31,6 @@ pipeline {
                             sh 'mvn clean compile'
                         }
                     } catch (err) {
-                        env.FAILURE_TYPE = 'BUILD_FAILED'
-                        env.FAILED_STAGES = 'Compile'
                         env.ERROR_SUMMARY = err.getMessage()
                         error('Build failed during compilation')
                     }
@@ -49,12 +45,6 @@ pipeline {
                     dir('Test') {
                         sh 'mvn test'
                         junit 'target/surefire-reports/*.xml'
-                    }
-                }
-                script {
-                    if (currentBuild.result == 'UNSTABLE') {
-                        env.FAILURE_TYPE = 'BUILD_UNSTABLE'
-                        env.FAILED_STAGES = (env.FAILED_STAGES ?: '') + 'Unit Tests,'
                     }
                 }
             }
@@ -72,16 +62,8 @@ pipeline {
                             recordCoverage qualityGates: [[integerThreshold: 80, metric: 'LINE', threshold: 80.0], [integerThreshold: 70, metric:                             'BRANCH', threshold: 70.0]], tools: [[pattern: 'target/site/jacoco/jacoco.xml']]
                     }
                 }
-                script {
-                    if (currentBuild.result == 'UNSTABLE') {
-                        env.FAILURE_TYPE = 'BUILD_UNSTABLE'
-                        env.FAILED_STAGES = (env.FAILED_STAGES ?: '') + 'Code Coverage,'
-                    }
-                }
             }
         }
-
-
         /* ================= WARNINGS ================= */
         stage('Static Analysis (Warnings)') {
             steps {
@@ -93,39 +75,28 @@ pipeline {
                         ]
                     )
                 }
-                script {
-                    if (currentBuild.result == 'UNSTABLE') {
-                        env.FAILURE_TYPE = 'BUILD_UNSTABLE'
-                        env.FAILED_STAGES = (env.FAILED_STAGES ?: '') + 'Warnings,'
-                    }
-                }
             }
         }
 
         /* ================= DEPLOYMENT ================= */
-        stage('Deploy') {
+        stage('DEPLOY') {
             when {
-                expression { currentBuild.result != 'FAILURE' }
+                expression { currentBuild.currentResult != 'FAILURE'  || currentBuild.currentResult != 'UNSTABLE'}
             }
             steps {
-                script {
-                    try {
+                // catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    script {
+                        // Set flag AFTER entering catchError to persist properly
+                        env.DEPLOY_ATTEMPTED = 'true'
                         echo "Deploying to ${env.TARGET_ENV}"
-
-                        // For testing, you can simulate failure on PDI
+        
                         if (env.TARGET_ENV == 'DEV') {
-                            sh 'exit 1'
+                            echo "Pipeline failed in ${env.TARGET_ENV}"
                         } else {
-                            sh 'echo Deployment successful'
+                            echo 'Deployment successful'
                         }
-
-                    } catch (err) {
-                        env.FAILURE_TYPE = 'PIPELINE_FAILED'
-                        env.FAILED_STAGES = 'Deploy'
-                        env.ERROR_SUMMARY = err.getMessage()
-                        error("Deployment failed in ${env.TARGET_ENV}")
                     }
-                }
+                // }
             }
         }
     }
@@ -133,6 +104,21 @@ pipeline {
     post {
         always {
             script {
+                
+                def check = true
+                echo "current build check ${currentBuild.currentResult} "
+                echo " deploy attempted check ${env.DEPLOY_ATTEMPTED}"
+
+                if (currentBuild.currentResult == 'FAILURE') {
+                    if (env.DEPLOY_ATTEMPTED == 'true') {
+                        env.FAILURE_TYPE = 'PIPELINE_FAILED'
+                    } else {
+                        env.FAILURE_TYPE = 'BUILD_FAILED'
+                    }
+                } else {
+                    env.FAILURE_TYPE = 'NONE'
+                }
+
                 def startTime = new Date(currentBuild.startTimeInMillis).toString()
                 def endTime = new Date().toString()
                 def triggeredBy = currentBuild.getBuildCauses()
@@ -148,15 +134,13 @@ pipeline {
                     }
                 }
 
-                def failedStagesClean = (env.FAILED_STAGES ?: '').trim().replaceAll(/,$/, '')
-
                 def payload = [
                     source        : 'jenkins',
                     job           : env.JOB_NAME,
                     buildNumber   : env.BUILD_NUMBER,
                     result        : currentBuild.currentResult,
+                    test          : check,
                     failureType   : env.FAILURE_TYPE ?: 'NONE',
-                    failedStages  : failedStagesClean,
                     errorSummary  : env.ERROR_SUMMARY ?: '',
                     changedFiles  : changedFiles.unique(),
                     environment   : env.TARGET_ENV ?: '',
@@ -172,11 +156,10 @@ pipeline {
                 echo "==========================="
 
                 sh """
-                  echo '${payloadJson}' > payload.json
                   curl -X POST \
-                       -H "Content-Type: application/json" \
-                       -d @payload.json \
-                       https://webhook.site/4746df80-50b3-4fc8-af8f-92be5b1a512c
+                    -H "Content-Type: application/json" \
+                    -d '${payloadJson}' \
+                    "https://techmtriggersdev.service-now.com/api/sn_jenkinsv2_spoke/jenkins_build_unstable?X-SkipCookieAuthentication=true&authorization=now_dKlshgPbErERRUJZ_RBE2IvzmnjSfiXOWTwBTlmF3BiiL_0PZM8r7Tdn1_CSIAveMFd5RGKQJ68SMuJEaXD1iw"
                 """
             }
         }

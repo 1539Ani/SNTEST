@@ -155,8 +155,8 @@ pipeline {
                   curl -X POST \
                     -H "Content-Type: application/json" \
                     -d '${payload}' \
-                    // -H "jenkins-token: now_KWFMnVwcWX4rR0fYr_zrqea008rWye55Oe5R9SjwPvRmUw91tw_I1ZfoRssp_1Dpk-ztEiFEFahpXmycbMuhrw" \
-                    https://techmtriggersdev.service-now.com/api/sn_jenkinsv2_spoke/jenkins_build_unstable?X-SkipCookieAuthentication=true&authorization=now_u3g9sEMHBomHRav_TA6ROWOVaP5afgjqxLRwXqXW-qMoLgh5EdNrNaGvZan8eUVCQMoWVUDGlilpkwzMt9w4qA
+                    -H "jenkins-token: now_UkZpEJHrHliPa8TyK2ruZXmPkdewfRmemb-RxXlvQDe3Oc9Sb8fmPnpUQDMrPJBhFo6bs2lpALGuG5S2dHcUmQ" \
+                    https://techmtriggersdev.service-now.com/api/sn_jenkinsv2_spoke/test_build_unstable?X-SkipCookieAuthentication=true
                 """
             }
         }

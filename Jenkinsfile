@@ -106,8 +106,7 @@ pipeline {
     post {
         always {
             script {
-                
-                def check = true
+
                 echo "current build check ${currentBuild.currentResult} "
                 echo " deploy attempted check ${DEPLOY_ATTEMPTED}"
 
@@ -141,7 +140,6 @@ pipeline {
                     job           : env.JOB_NAME,
                     buildNumber   : env.BUILD_NUMBER,
                     result        : currentBuild.currentResult,
-                    test          : check,
                     failureType   : env.FAILURE_TYPE ?: 'NONE',
                     errorSummary  : env.ERROR_SUMMARY ?: '',
                     changedFiles  : changedFiles.unique(),
@@ -161,7 +159,8 @@ pipeline {
                   curl -X POST \
                     -H "Content-Type: application/json" \
                     -d '${payloadJson}' \
-                    "https://techmtriggersdev.service-now.com/api/sn_jenkinsv2_spoke/jenkins_build_unstable?X-SkipCookieAuthentication=true&authorization=now_dKlshgPbErERRUJZ_RBE2IvzmnjSfiXOWTwBTlmF3BiiL_0PZM8r7Tdn1_CSIAveMFd5RGKQJ68SMuJEaXD1iw"
+                    https://webhook.site/0e3b47c0-0ffb-4c79-9119-e16bf53234aa
+//                     "https://techmtriggersdev.service-now.com/api/sn_jenkinsv2_spoke/jenkins_build_unstable?X-SkipCookieAuthentication=true&authorization=now_dKlshgPbErERRUJZ_RBE2IvzmnjSfiXOWTwBTlmF3BiiL_0PZM8r7Tdn1_CSIAveMFd5RGKQJ68SMuJEaXD1iw"
                 """
             }
         }

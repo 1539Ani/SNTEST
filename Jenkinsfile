@@ -109,9 +109,6 @@ pipeline {
 
     post {
 
-        echo "current build check ${currentBuild.currentResult} "
-        echo " deploy attempted check ${DEPLOY_ATTEMPTED}"
-
         failure {
            script {
                if (currentBuild.currentResult == 'FAILURE') {
@@ -130,6 +127,9 @@ pipeline {
 
         always {
             script {
+
+            echo "current build check ${currentBuild.currentResult} "
+            echo " deploy attempted check ${DEPLOY_ATTEMPTED}"
 
                 def startTime = new Date(currentBuild.startTimeInMillis).toString()
                 def endTime = new Date().toString()

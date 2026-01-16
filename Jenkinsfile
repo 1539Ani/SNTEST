@@ -11,6 +11,7 @@ pipeline {
         ERROR_SUMMARY = ''
         // Target deployment environment (DEV / PDI / NONPROD / PROD)
         TARGET_ENV = 'PDI'
+        MAVEN_SETTINGS = "${HOME}/.m2/settings.xml" // Your local settings.xml
     }
 
     stages {
@@ -80,24 +81,25 @@ pipeline {
 
         /* ================= DEPLOYMENT ================= */
         stage('DEPLOY') {
-            when {
-                expression { currentBuild.currentResult != 'FAILURE'  || currentBuild.currentResult != 'UNSTABLE'}
-            }
-            steps {
-                // catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    script {
-                        // Set flag AFTER entering catchError to persist properly
-                        env.DEPLOY_ATTEMPTED = 'true'
-                        echo "Deploying to ${env.TARGET_ENV}"
-        
-                        if (env.TARGET_ENV == 'DEV') {
-                            echo "Pipeline failed in ${env.TARGET_ENV}"
-                        } else {
+             when {
+                 expression { currentBuild.currentResult != 'FAILURE' && currentBuild.currentResult != 'UNSTABLE' }
+             }
+             steps {
+                 script {
+                    env.DEPLOY_ATTEMPTED = 'true'
+                       echo "Deploying to GitHub Packages from ${env.TARGET_ENV}"
+
+                    dir('Test') {
+                        try {
+                            sh "mvn deploy -s ${env.MAVEN_SETTINGS}"
                             echo 'Deployment successful'
+                        } catch (err) {
+                            env.ERROR_SUMMARY = err.getMessage()
+                            error('Deployment failed!')
                         }
                     }
-                // }
-            }
+                 }
+             }
         }
     }
 

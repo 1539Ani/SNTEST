@@ -6,6 +6,8 @@ pipeline {
         // Use locally installed Maven (Homebrew path)
         PATH = "/opt/homebrew/bin:${env.PATH}"
 
+        FAILURE_SOURCE = ''   // BUILD or PIPELINE
+
         FAILURE_TYPE = ''
         // Stores a short error summary, e.g., compilation or deployment errors
         ERROR_SUMMARY = ''
@@ -33,6 +35,7 @@ pipeline {
                         }
                     } catch (err) {
                         env.ERROR_SUMMARY = err.getMessage()
+                        env.FAILURE_SOURCE = 'BUILD'
                         error('Build failed during compilation')
                     }
                 }
@@ -95,6 +98,7 @@ pipeline {
                             echo 'Deployment successful'
                         } catch (err) {
                             env.ERROR_SUMMARY = err.getMessage()
+                            env.FAILURE_SOURCE = 'PIPELINE'
                             error('Deployment failed!')
                         }
                     }
@@ -111,14 +115,17 @@ pipeline {
                 echo " deploy attempted check ${DEPLOY_ATTEMPTED}"
 
                 if (currentBuild.currentResult == 'FAILURE') {
-                    if (DEPLOY_ATTEMPTED == 'true') {
+                    if (env.FAILURE_SOURCE == 'PIPELINE') {
                         env.FAILURE_TYPE = 'PIPELINE_FAILED'
-                    } else {
+                    } else if (env.FAILURE_SOURCE == 'BUILD') {
                         env.FAILURE_TYPE = 'BUILD_FAILED'
+                    } else {
+                        env.FAILURE_TYPE = 'UNKNOWN_FAILURE'
                     }
                 } else {
                     env.FAILURE_TYPE = 'NONE'
                 }
+
 
                 def startTime = new Date(currentBuild.startTimeInMillis).toString()
                 def endTime = new Date().toString()

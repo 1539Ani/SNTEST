@@ -108,24 +108,28 @@ pipeline {
     }
 
     post {
+
+        echo "current build check ${currentBuild.currentResult} "
+        echo " deploy attempted check ${DEPLOY_ATTEMPTED}"
+
+        failure {
+           script {
+               if (currentBuild.currentResult == 'FAILURE') {
+                   if (env.FAILURE_SOURCE == 'PIPELINE') {
+                       env.FAILURE_TYPE = 'PIPELINE_FAILED'
+                   } else if (env.FAILURE_SOURCE == 'BUILD') {
+                       env.FAILURE_TYPE = 'BUILD_FAILED'
+                   } else {
+                       env.FAILURE_TYPE = 'UNKNOWN_FAILURE'
+                   }
+               } else {
+                   env.FAILURE_TYPE = 'NONE'
+               }
+           }
+        }
+
         always {
             script {
-
-                echo "current build check ${currentBuild.currentResult} "
-                echo " deploy attempted check ${DEPLOY_ATTEMPTED}"
-
-                if (currentBuild.currentResult == 'FAILURE') {
-                    if (env.FAILURE_SOURCE == 'PIPELINE') {
-                        env.FAILURE_TYPE = 'PIPELINE_FAILED'
-                    } else if (env.FAILURE_SOURCE == 'BUILD') {
-                        env.FAILURE_TYPE = 'BUILD_FAILED'
-                    } else {
-                        env.FAILURE_TYPE = 'UNKNOWN_FAILURE'
-                    }
-                } else {
-                    env.FAILURE_TYPE = 'NONE'
-                }
-
 
                 def startTime = new Date(currentBuild.startTimeInMillis).toString()
                 def endTime = new Date().toString()

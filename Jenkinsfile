@@ -1,8 +1,8 @@
+def DEPLOY_ATTEMPTED = 'false'
 pipeline {
     agent any
 
     environment {
-        DEPLOY_ATTEMPTED = 'false'
         // Use locally installed Maven (Homebrew path)
         PATH = "/opt/homebrew/bin:${env.PATH}"
 
@@ -86,7 +86,7 @@ pipeline {
              }
              steps {
                  script {
-                    env.DEPLOY_ATTEMPTED = 'true'
+                    DEPLOY_ATTEMPTED = 'true'
                        echo "Deploying to GitHub Packages from ${env.TARGET_ENV}"
 
                     dir('Test') {
@@ -109,10 +109,10 @@ pipeline {
                 
                 def check = true
                 echo "current build check ${currentBuild.currentResult} "
-                echo " deploy attempted check ${env.DEPLOY_ATTEMPTED}"
+                echo " deploy attempted check ${DEPLOY_ATTEMPTED}"
 
                 if (currentBuild.currentResult == 'FAILURE') {
-                    if (env.DEPLOY_ATTEMPTED == 'true') {
+                    if (DEPLOY_ATTEMPTED == 'true') {
                         env.FAILURE_TYPE = 'PIPELINE_FAILED'
                     } else {
                         env.FAILURE_TYPE = 'BUILD_FAILED'

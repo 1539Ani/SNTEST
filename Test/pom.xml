@@ -30,7 +30,7 @@
 
     <distributionManagement>
         <repository>
-            <id>github_1</id>
+            <id>github</id>
             <name>GitHub Packages</name>
             <url>https://maven.pkg.github.com/1539Ani/SNTEST</url>
         </repository>

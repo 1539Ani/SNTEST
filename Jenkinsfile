@@ -111,6 +111,7 @@ pipeline {
 
         failure {
            script {
+               echo "failure_source check ${env.FAILURE_SOURCE}"
                if (currentBuild.currentResult == 'FAILURE') {
                    if (env.FAILURE_SOURCE == 'PIPELINE') {
                        env.FAILURE_TYPE = 'PIPELINE_FAILED'

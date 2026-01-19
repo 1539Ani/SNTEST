@@ -1,6 +1,6 @@
 def DEPLOY_ATTEMPTED = 'false'
 def FAILURE_SOURCE = '' 
-def FAILURE_TYPE = 'NONE'
+def FAILURE_TYPE = ''
 pipeline {
     agent any
 
@@ -153,7 +153,7 @@ pipeline {
                     job           : env.JOB_NAME,
                     buildNumber   : env.BUILD_NUMBER,
                     result        : currentBuild.currentResult,
-                    failureType   : this.FAILURE_TYPE ,
+                    failureType   : FAILURE_TYPE ,
                     errorSummary  : env.ERROR_SUMMARY ?: '',
                     changedFiles  : changedFiles.unique(),
                     environment   : env.TARGET_ENV ?: '',

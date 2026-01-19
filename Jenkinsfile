@@ -1,4 +1,5 @@
 def DEPLOY_ATTEMPTED = 'false'
+def FAILURE_SOURCE = '' 
 pipeline {
     agent any
 
@@ -6,7 +7,7 @@ pipeline {
         // Use locally installed Maven (Homebrew path)
         PATH = "/opt/homebrew/bin:${env.PATH}"
 
-        FAILURE_SOURCE = ''   // BUILD or PIPELINE
+          // BUILD or PIPELINE
 
         FAILURE_TYPE = ''
         // Stores a short error summary, e.g., compilation or deployment errors
@@ -35,7 +36,7 @@ pipeline {
                         }
                     } catch (err) {
                         env.ERROR_SUMMARY = err.getMessage()
-                        env.FAILURE_SOURCE = 'BUILD'
+                        FAILURE_SOURCE = 'BUILD'
                         error('Build failed during compilation')
                     }
                 }
@@ -98,7 +99,7 @@ pipeline {
                             echo 'Deployment successful'
                         } catch (err) {
                             env.ERROR_SUMMARY = err.getMessage()
-                            env.FAILURE_SOURCE = 'PIPELINE'
+                            FAILURE_SOURCE = 'PIPELINE'
                             error('Deployment failed!')
                         }
                     }
@@ -111,11 +112,11 @@ pipeline {
 
         failure {
            script {
-               echo "failure_source check ${env.FAILURE_SOURCE}"
+               echo "failure_source check ${FAILURE_SOURCE}"
                if (currentBuild.currentResult == 'FAILURE') {
-                   if (env.FAILURE_SOURCE == 'PIPELINE') {
+                   if (FAILURE_SOURCE == 'PIPELINE') {
                        env.FAILURE_TYPE = 'PIPELINE_FAILED'
-                   } else if (env.FAILURE_SOURCE == 'BUILD') {
+                   } else if (FAILURE_SOURCE == 'BUILD') {
                        env.FAILURE_TYPE = 'BUILD_FAILED'
                    } else {
                        env.FAILURE_TYPE = 'UNKNOWN_FAILURE'

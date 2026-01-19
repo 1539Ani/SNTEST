@@ -108,9 +108,9 @@ pipeline {
     }
 
     post {
+        always {
+            script {
 
-        failure {
-           script {
                echo "failure_source check ${FAILURE_SOURCE}"
                if (currentBuild.currentResult == 'FAILURE') {
                    if (FAILURE_SOURCE == 'PIPELINE') {
@@ -126,12 +126,8 @@ pipeline {
                } else {
                    FAILURE_TYPE = 'NONE'
                }
-           }
-        }
 
-        always {
-            script {
-
+            echo " failure check ${env.FAILURE}"
             echo "current build check ${currentBuild.currentResult} "
             echo " deploy attempted check ${DEPLOY_ATTEMPTED}"
 
@@ -155,7 +151,7 @@ pipeline {
                     job           : env.JOB_NAME,
                     buildNumber   : env.BUILD_NUMBER,
                     result        : currentBuild.currentResult,
-                    failureType   : env.FAILURE ,
+                    failureType   : FAILURE_TYPE ,
                     errorSummary  : env.ERROR_SUMMARY ?: '',
                     changedFiles  : changedFiles.unique(),
                     environment   : env.TARGET_ENV ?: '',

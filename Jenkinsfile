@@ -1,6 +1,6 @@
-def DEPLOY_ATTEMPTED = 'false'
-def FAILURE_SOURCE = '' 
-def FAILURE_TYPE = 'NONE'
+DEPLOY_ATTEMPTED = 'false'
+FAILURE_SOURCE = '' 
+FAILURE_TYPE = 'NONE'
 pipeline {
     agent any
 

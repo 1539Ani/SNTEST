@@ -7,8 +7,7 @@ pipeline {
     environment {
         // Use locally installed Maven (Homebrew path)
         PATH = "/opt/homebrew/bin:${env.PATH}"
-
-        FAILURE = ''
+        
         // Stores a short error summary, e.g., compilation or deployment errors
         ERROR_SUMMARY = ''
         // Target deployment environment (DEV / PDI / NONPROD / PROD)
@@ -111,13 +110,9 @@ pipeline {
         always {
             script {
 
-               echo "failure_source check ${FAILURE_SOURCE}"
                if (currentBuild.currentResult == 'FAILURE') {
                    if (FAILURE_SOURCE == 'PIPELINE') {
-                       echo "inside failure_source ${FAILURE_SOURCE}"
                        FAILURE_TYPE = 'PIPELINE_FAILED'
-                       env.FAILURE = FAILURE_TYPE
-                       echo "failure type ${FAILURE_TYPE}"
                    } else if (FAILURE_SOURCE == 'BUILD') {
                        FAILURE_TYPE = 'BUILD_FAILED'
                    } else {
@@ -127,7 +122,6 @@ pipeline {
                    FAILURE_TYPE = 'NONE'
                }
 
-            echo " failure check ${env.FAILURE}"
             echo "current build check ${currentBuild.currentResult} "
             echo " deploy attempted check ${DEPLOY_ATTEMPTED}"
 

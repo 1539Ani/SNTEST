@@ -172,7 +172,7 @@ pipeline {
                   curl -X POST \
                     -H "Content-Type: application/json" \
                     -d '${payloadJson}' \
-                    https://webhook.site/0e3b47c0-0ffb-4c79-9119-e16bf53234aa
+                    https://webhook.site/5f7e1486-0835-4f4a-90a3-515d836ea7e8
                 """
             }
         }

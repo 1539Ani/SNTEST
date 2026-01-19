@@ -118,6 +118,7 @@ pipeline {
                    if (FAILURE_SOURCE == 'PIPELINE') {
                        echo "inside failure_source ${FAILURE_SOURCE}"
                        FAILURE_TYPE = 'PIPELINE_FAILED'
+                        echo "failure type ${FAILURE_TYPE}"
                    } else if (FAILURE_SOURCE == 'BUILD') {
                        FAILURE_TYPE = 'BUILD_FAILED'
                    } else {

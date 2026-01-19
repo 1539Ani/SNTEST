@@ -1,6 +1,6 @@
-def DEPLOY_ATTEMPTED = 'false'
-def FAILURE_SOURCE = '' 
-def FAILURE_TYPE = ''
+String DEPLOY_ATTEMPTED = 'false'
+String FAILURE_SOURCE = '' 
+String FAILURE_TYPE = ''
 pipeline {
     agent any
 

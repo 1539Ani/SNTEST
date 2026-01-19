@@ -7,9 +7,6 @@ pipeline {
     environment {
         // Use locally installed Maven (Homebrew path)
         PATH = "/opt/homebrew/bin:${env.PATH}"
-
-          // BUILD or PIPELINE
-
         
         // Stores a short error summary, e.g., compilation or deployment errors
         ERROR_SUMMARY = ''

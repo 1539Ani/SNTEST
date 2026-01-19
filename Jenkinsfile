@@ -1,5 +1,6 @@
 def DEPLOY_ATTEMPTED = 'false'
 def FAILURE_SOURCE = '' 
+def FAILURE_TYPE = ''
 pipeline {
     agent any
 
@@ -9,7 +10,7 @@ pipeline {
 
           // BUILD or PIPELINE
 
-        FAILURE_TYPE = ''
+        
         // Stores a short error summary, e.g., compilation or deployment errors
         ERROR_SUMMARY = ''
         // Target deployment environment (DEV / PDI / NONPROD / PROD)
@@ -115,14 +116,14 @@ pipeline {
                echo "failure_source check ${FAILURE_SOURCE}"
                if (currentBuild.currentResult == 'FAILURE') {
                    if (FAILURE_SOURCE == 'PIPELINE') {
-                       env.FAILURE_TYPE = 'PIPELINE_FAILED'
+                       FAILURE_TYPE = 'PIPELINE_FAILED'
                    } else if (FAILURE_SOURCE == 'BUILD') {
-                       env.FAILURE_TYPE = 'BUILD_FAILED'
+                       FAILURE_TYPE = 'BUILD_FAILED'
                    } else {
-                       env.FAILURE_TYPE = 'UNKNOWN_FAILURE'
+                       FAILURE_TYPE = 'UNKNOWN_FAILURE'
                    }
                } else {
-                   env.FAILURE_TYPE = 'NONE'
+                   FAILURE_TYPE = 'NONE'
                }
            }
         }
@@ -153,7 +154,7 @@ pipeline {
                     job           : env.JOB_NAME,
                     buildNumber   : env.BUILD_NUMBER,
                     result        : currentBuild.currentResult,
-                    failureType   : env.FAILURE_TYPE ?: 'NONE',
+                    failureType   : FAILURE_TYPE ?: 'NONE',
                     errorSummary  : env.ERROR_SUMMARY ?: '',
                     changedFiles  : changedFiles.unique(),
                     environment   : env.TARGET_ENV ?: '',

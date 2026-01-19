@@ -116,6 +116,7 @@ pipeline {
                echo "failure_source check ${FAILURE_SOURCE}"
                if (currentBuild.currentResult == 'FAILURE') {
                    if (FAILURE_SOURCE == 'PIPELINE') {
+                       echo "inside failure_source ${FAILURE_SOURCE}"
                        FAILURE_TYPE = 'PIPELINE_FAILED'
                    } else if (FAILURE_SOURCE == 'BUILD') {
                        FAILURE_TYPE = 'BUILD_FAILED'

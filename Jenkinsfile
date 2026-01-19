@@ -1,6 +1,6 @@
-DEPLOY_ATTEMPTED = 'false'
-FAILURE_SOURCE = '' 
-FAILURE_TYPE = 'NONE'
+def DEPLOY_ATTEMPTED = 'false'
+def FAILURE_SOURCE = '' 
+def FAILURE_TYPE = 'NONE'
 pipeline {
     agent any
 
@@ -114,7 +114,7 @@ pipeline {
                if (currentBuild.currentResult == 'FAILURE') {
                    if (FAILURE_SOURCE == 'PIPELINE') {
                        echo "inside failure_source ${FAILURE_SOURCE}"
-                       FAILURE_TYPE = 'PIPELINE_FAILED'
+                       this.FAILURE_TYPE = 'PIPELINE_FAILED'
                         echo "failure type ${FAILURE_TYPE}"
                    } else if (FAILURE_SOURCE == 'BUILD') {
                        FAILURE_TYPE = 'BUILD_FAILED'
@@ -153,7 +153,7 @@ pipeline {
                     job           : env.JOB_NAME,
                     buildNumber   : env.BUILD_NUMBER,
                     result        : currentBuild.currentResult,
-                    failureType   : FAILURE_TYPE ,
+                    failureType   : this.FAILURE_TYPE ,
                     errorSummary  : env.ERROR_SUMMARY ?: '',
                     changedFiles  : changedFiles.unique(),
                     environment   : env.TARGET_ENV ?: '',

@@ -159,7 +159,7 @@ pipeline {
                   curl -X POST \
                     -H "Content-Type: application/json" \
                     -d '${payloadJson}' \
-                    https://webhook.site/5f7e1486-0835-4f4a-90a3-515d836ea7e8
+                    "https://techmtriggersdev.service-now.com/api/sn_jenkinsv2_spoke/jenkins_build_unstable?X-SkipCookieAuthentication=true&authorization=now_dKlshgPbErERRUJZ_RBE2IvzmnjSfiXOWTwBTlmF3BiiL_0PZM8r7Tdn1_CSIAveMFd5RGKQJ68SMuJEaXD1iw"
                 """
             }
         }

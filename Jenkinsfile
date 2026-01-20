@@ -9,10 +9,6 @@ pipeline {
         // Use locally installed Maven (Homebrew path)
         PATH = "/opt/homebrew/bin:${env.PATH}"
         
-        
-        
-        // Target deployment environment (DEV / PDI / NONPROD / PROD)
-        TARGET_ENV = 'PDI'
         MAVEN_SETTINGS = "${HOME}/.m2/settings.xml" // Your local settings.xml
     }
 
@@ -90,7 +86,6 @@ pipeline {
              steps {
                  script {
                     DEPLOY_ATTEMPTED = 'true'
-                       echo "Deploying to GitHub Packages from ${env.TARGET_ENV}"
 
                     dir('Test') {
                         try {
@@ -149,7 +144,6 @@ pipeline {
                     failureType   : FAILURE_TYPE ,
                     errorSummary  : ERROR_SUMMARY ?: '',
                     changedFiles  : changedFiles.unique(),
-                    environment   : env.TARGET_ENV ?: '',
                     triggeredBy   : triggeredBy,
                     startTime     : startTime,
                     endTime       : endTime

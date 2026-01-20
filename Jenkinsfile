@@ -92,21 +92,22 @@ pipeline {
                     DEPLOY_ATTEMPTED = 'true'
                        echo "Deploying to GitHub Packages from ${env.TARGET_ENV}"
 
+                    def output = ''
+                    def status = 0
+                    
                     dir('Test') {
-                        try {
-                            def output = sh(
-                              script: "mvn deploy -s ${env.MAVEN_SETTINGS}",
-                              returnStdout: true
-                            ).trim()
-                
-                            echo output
-                            echo 'Deployment successful'
-                        } catch (err) {
-                            ERROR_SUMMARY = err.getMessage()
-                            echo "error message ${ERROR_SUMMARY}"
-                            FAILURE_SOURCE = 'PIPELINE'
-                            error('Deployment failed!')
-                        }
+                        status = sh(
+                            script: "mvn deploy -s ${env.MAVEN_SETTINGS} > deploy.log 2>&1",
+                            returnStatus: true
+                        )
+                    
+                        output = readFile('deploy.log')
+                    }
+                    
+                    if (status != 0) {
+                        env.ERROR_SUMMARY = output
+                        FAILURE_SOURCE = 'PIPELINE'
+                        error('Deployment failed!')
                     }
                  }
              }

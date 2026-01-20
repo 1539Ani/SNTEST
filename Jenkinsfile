@@ -98,6 +98,7 @@ pipeline {
                             echo 'Deployment successful'
                         } catch (err) {
                             ERROR_SUMMARY = err.getMessage()
+                            echo "error message ${ERROR_SUMMARY}"
                             FAILURE_SOURCE = 'PIPELINE'
                             error('Deployment failed!')
                         }

@@ -94,7 +94,12 @@ pipeline {
 
                     dir('Test') {
                         try {
-                            sh "mvn deploy -s ${env.MAVEN_SETTINGS}"
+                            def output = sh(
+                              script: "mvn deploy -s ${env.MAVEN_SETTINGS}",
+                              returnStdout: true
+                            ).trim()
+                
+                            echo output
                             echo 'Deployment successful'
                         } catch (err) {
                             ERROR_SUMMARY = err.getMessage()

@@ -1,6 +1,7 @@
 def DEPLOY_ATTEMPTED = 'false'
 def FAILURE_SOURCE = '' 
 def FAILURE_TYPE = ''
+def ERROR_SUMMARY = ''  // Stores a short error summary, e.g., compilation or deployment errors
 pipeline {
     agent any
 
@@ -8,8 +9,8 @@ pipeline {
         // Use locally installed Maven (Homebrew path)
         PATH = "/opt/homebrew/bin:${env.PATH}"
         
-        // Stores a short error summary, e.g., compilation or deployment errors
-        ERROR_SUMMARY = ''
+        
+        
         // Target deployment environment (DEV / PDI / NONPROD / PROD)
         TARGET_ENV = 'PDI'
         MAVEN_SETTINGS = "${HOME}/.m2/settings.xml" // Your local settings.xml
@@ -33,7 +34,7 @@ pipeline {
                             sh 'mvn clean compile'
                         }
                     } catch (err) {
-                        env.ERROR_SUMMARY = err.getMessage()
+                        ERROR_SUMMARY = err.getMessage()
                         FAILURE_SOURCE = 'BUILD'
                         error('Build failed during compilation')
                     }
@@ -96,7 +97,7 @@ pipeline {
                             sh "mvn deploy -s ${env.MAVEN_SETTINGS}"
                             echo 'Deployment successful'
                         } catch (err) {
-                            env.ERROR_SUMMARY = err.getMessage()
+                            ERROR_SUMMARY = err.getMessage()
                             FAILURE_SOURCE = 'PIPELINE'
                             error('Deployment failed!')
                         }
@@ -146,7 +147,7 @@ pipeline {
                     buildNumber   : env.BUILD_NUMBER,
                     result        : currentBuild.currentResult,
                     failureType   : FAILURE_TYPE ,
-                    errorSummary  : env.ERROR_SUMMARY ?: '',
+                    errorSummary  : ERROR_SUMMARY ?: '',
                     changedFiles  : changedFiles.unique(),
                     environment   : env.TARGET_ENV ?: '',
                     triggeredBy   : triggeredBy,

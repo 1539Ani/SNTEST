@@ -22,6 +22,6 @@ public class Calculator {
         if (b == 0) {
             throw new IllegalArgumentException("Cannot divide by zero");
         }
-        return a / b
+        return a / b;
     }
 }

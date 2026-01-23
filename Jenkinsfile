@@ -84,7 +84,6 @@ pipeline {
              }
              steps {
                  script {
-                    DEPLOY_ATTEMPTED = 'true'
 
                     dir('Test') {
                         try {
@@ -118,7 +117,6 @@ pipeline {
                }
 
             echo "current build check ${currentBuild.currentResult} "
-            echo " deploy attempted check ${DEPLOY_ATTEMPTED}"
 
                 def startTime = new Date(currentBuild.startTimeInMillis).toString()
                 def endTime = new Date().toString()

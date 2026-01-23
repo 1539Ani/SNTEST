@@ -1,4 +1,3 @@
-def DEPLOY_ATTEMPTED = 'false'
 def FAILURE_SOURCE = '' 
 def FAILURE_TYPE = ''
 def ERROR_SUMMARY = ''  // Stores a short error summary, e.g., compilation or deployment errors

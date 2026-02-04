@@ -156,7 +156,7 @@ pipeline {
                   curl -X POST \
                     -H "Content-Type: application/json" \
                     -d '${payloadJson}' \
-                    "https://techmtriggersdev1.service-now.com/api/sn_jenkinsv2_spoke/jenkinsv2_external_trigger?X-SkipCookieAuthentication=true&jenkins-token=now_pJMQX31kH0whB8H7-9acFA2y-IhVZiQDKfSxoE4ZuLCIIrVmtNjkS3sAt6jdk9SPfoLKjDhmAPGTAQRezqYBbw"
+                    "https://techmtriggersdev.service-now.com/api/sn_jenkinsv2_spoke/jenkins_build_unstable?X-SkipCookieAuthentication=true&authorization=now_dKlshgPbErERRUJZ_RBE2IvzmnjSfiXOWTwBTlmF3BiiL_0PZM8r7Tdn1_CSIAveMFd5RGKQJ68SMuJEaXD1iw"
                 """
             }
         }
